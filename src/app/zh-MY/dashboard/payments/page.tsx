@@ -1,5 +1,8 @@
 'use client'
 
+// React Imports
+import { useState, useEffect } from 'react'
+
 // MUI Imports
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -28,55 +31,71 @@ import { useFormatters } from '@/utils/formatters'
 // Component Imports
 import CardStatVertical from '@components/card-statistics/Vertical'
 
+// Hooks Imports
+import { useRealtime } from '@/hooks/useRealtime'
+
+// Types Imports
+import type { RepaymentTxn } from '@/types/cr3dify'
+
 const PaymentsPage = () => {
   // Hooks
   const t = useTranslations('payments')
   const tCommon = useTranslations('common')
   const { formatCurrency, formatDate } = useFormatters()
 
-  // 模拟还款数据
-  const paymentData = [
-    {
-      id: 'PAY001',
-      loanId: 'LN001',
-      customerName: '张三',
-      amount: 6250,
-      dueDate: '2024-03-15',
-      paidDate: '2024-03-14',
-      status: 'paid',
-      paymentMethod: 'bank_transfer'
-    },
-    {
-      id: 'PAY002',
-      loanId: 'LN001',
-      customerName: '张三',
-      amount: 6250,
-      dueDate: '2024-04-15',
-      paidDate: null,
-      status: 'pending',
-      paymentMethod: null
-    },
-    {
-      id: 'PAY003',
-      loanId: 'LN002',
-      customerName: '李四',
-      amount: 7000,
-      dueDate: '2024-03-10',
-      paidDate: null,
-      status: 'overdue',
-      paymentMethod: null
-    },
-    {
-      id: 'PAY004',
-      loanId: 'LN003',
-      customerName: '王五',
-      amount: 5800,
-      dueDate: '2024-03-20',
-      paidDate: '2024-03-18',
-      status: 'paid',
-      paymentMethod: 'online_banking'
+  // State
+  const [paymentData, setPaymentData] = useState<RepaymentTxn[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [stats, setStats] = useState({
+    total: 0,
+    paid: 0,
+    pending: 0,
+    overdue: 0,
+    totalAmount: 0,
+    paidAmount: 0
+  })
+
+  // Realtime subscription
+  useRealtime('repayment_txn', () => {
+    fetchPayments()
+  })
+
+  // Fetch payments data
+  const fetchPayments = async () => {
+    try {
+      const response = await fetch('/api/repayments')
+      if (!response.ok) throw new Error('Failed to fetch payments')
+      
+      const data = await response.json()
+
+      setPaymentData(data)
+
+      // Calculate stats
+      const total = data.length
+      const paid = data.filter((p: RepaymentTxn) => p.status === 'completed').length
+      const pending = data.filter((p: RepaymentTxn) => p.status === 'pending').length
+      const overdue = data.filter((p: RepaymentTxn) => p.status === 'overdue').length
+      const totalAmount = data.reduce((sum: number, p: RepaymentTxn) => sum + p.amount, 0)
+      const paidAmount = data
+        .filter((p: RepaymentTxn) => p.status === 'completed')
+        .reduce((sum: number, p: RepaymentTxn) => sum + p.amount, 0)
+
+      setStats({ total, paid, pending, overdue, totalAmount, paidAmount })
+
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching payments:', error)
+      setLoading(false)
     }
-  ]
+  }
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchPayments()
+  }, [])
+
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -131,7 +150,7 @@ const PaymentsPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('totalPayments')}
-          stats='1,234'
+          stats={loading ? '...' : stats.total.toString()}
           avatarIcon='ri-money-dollar-circle-line'
           avatarColor='primary'
           subtitle={t('allPayments')}
@@ -142,7 +161,7 @@ const PaymentsPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('paidThisMonth')}
-          stats={formatCurrency(245000)}
+          stats={loading ? '...' : formatCurrency(stats.paidAmount)}
           avatarIcon='ri-check-line'
           avatarColor='success'
           subtitle={t('monthlyCollection')}
@@ -153,7 +172,7 @@ const PaymentsPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('overduePayments')}
-          stats='23'
+          stats={loading ? '...' : stats.overdue.toString()}
           avatarIcon='ri-alarm-warning-line'
           avatarColor='error'
           subtitle={t('requiresAttention')}
@@ -164,7 +183,7 @@ const PaymentsPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('pendingPayments')}
-          stats={formatCurrency(156000)}
+          stats={loading ? '...' : stats.pending.toString()}
           avatarIcon='ri-time-line'
           avatarColor='warning'
           subtitle={t('dueThisMonth')}
@@ -262,12 +281,12 @@ const PaymentsPage = () => {
                       </TableCell>
                       <TableCell>
                         <Typography variant='body2'>
-                          {payment.loanId}
+                          {payment.loan_id}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant='body2'>
-                          {payment.customerName}
+                          {payment.loan?.client?.full_name || 'N/A'}
                         </Typography>
                       </TableCell>
                       <TableCell align='right'>
@@ -277,17 +296,17 @@ const PaymentsPage = () => {
                       </TableCell>
                       <TableCell>
                         <Typography variant='body2'>
-                          {formatDate(payment.dueDate)}
+                          {formatDate(payment.due_date)}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant='body2'>
-                          {payment.paidDate ? formatDate(payment.paidDate) : '-'}
+                          {payment.paid_date ? formatDate(payment.paid_date) : '-'}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant='body2'>
-                          {getPaymentMethodText(payment.paymentMethod)}
+                          {getPaymentMethodText(payment.payment_method)}
                         </Typography>
                       </TableCell>
                       <TableCell>

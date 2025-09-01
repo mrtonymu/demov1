@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -19,49 +19,79 @@ import PageHeader from '@components/common/PageHeader'
 // Utils Imports
 import { useFormatters } from '@/utils/formatters'
 
+// Hooks Imports
+import { useRealtime } from '@/hooks/useRealtime'
+
+// Types
+import type { Client } from '@/types/cr3dify'
+
 const CustomersPage = () => {
   // Hooks
   const t = useTranslations('customers')
   const tCommon = useTranslations('common')
-  const { formatCurrency } = useFormatters()
+  const { } = useFormatters()
   
   // States
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [customerData, setCustomerData] = useState<Client[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // 模拟客户数据
-  const customerData = [
-    {
-      id: 1,
-      name: '张三',
-      email: 'zhangsan@example.com',
-      phone: '+60123456789',
-      status: 'active',
-      joinDate: '2024-01-15',
-      totalLoans: 2,
-      totalAmount: 150000
-    },
-    {
-      id: 2,
-      name: '李四',
-      email: 'lisi@example.com',
-      phone: '+60198765432',
-      status: 'pending',
-      joinDate: '2024-02-20',
-      totalLoans: 1,
-      totalAmount: 80000
-    },
-    {
-      id: 3,
-      name: '王五',
-      email: 'wangwu@example.com',
-      phone: '+60187654321',
-      status: 'inactive',
-      joinDate: '2023-12-10',
-      totalLoans: 0,
-      totalAmount: 0
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    newThisMonth: 0,
+    pending: 0
+  })
+
+  // Fetch customers data
+  const fetchCustomers = async () => {
+    try {
+      const response = await fetch('/api/clients')
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch clients')
+      }
+
+      const data = await response.json()
+
+      setCustomerData(data)
+
+      // Calculate stats
+      const total = data.length
+      const active = data.filter((c: Client) => c.status === 'active').length
+      const pending = data.filter((c: Client) => c.status === 'pending').length
+      const thisMonth = new Date().getMonth()
+      const thisYear = new Date().getFullYear()
+
+      const newThisMonth = data.filter((c: Client) => {
+        const createdDate = new Date(c.created_at)
+
+        return createdDate.getMonth() === thisMonth && createdDate.getFullYear() === thisYear
+      }).length
+
+      setStats({ total, active, newThisMonth, pending })
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching customers:', error)
+      setLoading(false)
+
+      return
     }
-  ]
+  }
+
+  // Setup realtime subscription
+  useRealtime({
+    tables: ['clients'],
+    onUpdate: () => {
+      fetchCustomers()
+    }
+  })
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchCustomers()
+  }, [])
 
   // 状态渲染函数
   const renderStatus = (status: string) => {
@@ -87,7 +117,7 @@ const CustomersPage = () => {
   // 表格列配置
   const columns = [
     {
-      id: 'name',
+      id: 'full_name',
       label: t('name'),
       minWidth: 130
     },
@@ -108,22 +138,10 @@ const CustomersPage = () => {
       format: (value: string) => renderStatus(value)
     },
     {
-      id: 'joinDate',
+      id: 'created_at',
       label: t('joinDate'),
-      minWidth: 130
-    },
-    {
-      id: 'totalLoans',
-      label: t('totalLoans'),
-      minWidth: 120,
-      align: 'center' as const
-    },
-    {
-      id: 'totalAmount',
-      label: t('totalAmount'),
-      minWidth: 150,
-      align: 'right' as const,
-      format: (value: number) => formatCurrency(value)
+      minWidth: 130,
+      format: (value: string) => new Date(value).toLocaleDateString('zh-MY')
     },
     {
       id: 'actions',
@@ -171,9 +189,9 @@ const CustomersPage = () => {
   // 过滤数据
   const filteredData = customerData.filter(customer => {
     const matchesSearch = !searchTerm || 
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone.includes(searchTerm)
+      customer.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.phone?.includes(searchTerm)
     
     const matchesStatus = !statusFilter || customer.status === statusFilter
     
@@ -206,7 +224,7 @@ const CustomersPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <CardStatVertical
             title={t('totalCustomers')}
-            stats='1,234'
+            stats={loading ? '...' : stats.total.toString()}
             avatarIcon='ri-group-line'
             avatarColor='primary'
             subtitle={t('allCustomers')}
@@ -217,7 +235,7 @@ const CustomersPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <CardStatVertical
             title={t('activeCustomers')}
-            stats='987'
+            stats={loading ? '...' : stats.active.toString()}
             avatarIcon='ri-user-line'
             avatarColor='success'
             subtitle={t('currentlyActive')}
@@ -228,7 +246,7 @@ const CustomersPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <CardStatVertical
             title={t('newThisMonth')}
-            stats='45'
+            stats={loading ? '...' : stats.newThisMonth.toString()}
             avatarIcon='ri-user-add-line'
             avatarColor='info'
             subtitle={t('monthlyGrowth')}
@@ -239,7 +257,7 @@ const CustomersPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <CardStatVertical
             title={t('pendingApproval')}
-            stats='12'
+            stats={loading ? '...' : stats.pending.toString()}
             avatarIcon='ri-time-line'
             avatarColor='warning'
             subtitle={t('awaitingApproval')}

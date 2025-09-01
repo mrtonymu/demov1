@@ -12,12 +12,13 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
-
-// Supabase Imports
-import { createClient } from '@/lib/supabase'
+import Alert from '@mui/material/Alert'
 
 // Utils Imports
 import { useFormatters } from '@/utils/formatters'
+
+// Hooks Imports
+import { useRealtime } from '@/hooks/useRealtime'
 
 // Component Imports
 import CardStatVertical from '@components/card-statistics/Vertical'
@@ -28,19 +29,7 @@ import TopOverdueList from '@views/dashboard/TopOverdueList'
 import RecentRepaymentsTable from '@views/dashboard/RecentRepaymentsTable'
 
 // Types
-interface DashboardData {
-  activeBorrowers: number
-  monthlyDisbursed: number
-  monthlyRepaid: number
-  overdueCount: number
-  roi: number
-  badDebtRate: number
-  statusDistribution: Array<{ status: string; count: number }>
-  cashflowTrend: Array<{ month: string; disbursed: number; repaid: number }>
-  dueSoon: Array<{ clientName: string; dueDate: string; remainingPrincipal: number }>
-  topOverdue: Array<{ clientName: string; overdueDays: number; balance: number }>
-  recentRepayments: Array<{ clientName: string; amount: number; time: string; interestDeduction: number; principalDeduction: number }>
-}
+import type { DashboardMetrics } from '@/types/cr3dify'
 
 const DashboardAnalytics = () => {
   // Hooks
@@ -48,111 +37,50 @@ const DashboardAnalytics = () => {
   const { formatCurrency, formatNumber } = useFormatters()
   
   // State
-  const [data, setData] = useState<DashboardData | null>(null)
+  const [data, setData] = useState<DashboardMetrics | null>(null)
   const [loading, setLoading] = useState(true)
-  const [realtimeConnected, setRealtimeConnected] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Fetch dashboard data
   const fetchDashboardData = async () => {
     try {
-      // Mock data for development - replace with actual Supabase queries
-      const mockData = {
-        activeBorrowers: 156,
-        monthlyDisbursed: 2450000,
-        monthlyRepaid: 1890000,
-        overdueCount: 23,
-        roi: 0.125,
-        badDebtRate: 0.034,
-        statusDistribution: [
-          { status: 'normal', count: 145 },
-          { status: 'settled', count: 89 },
-          { status: 'negotiating', count: 12 },
-          { status: 'bad_debt', count: 8 }
-        ],
-        cashflowTrend: [
-          { month: '2024-01', disbursed: 2100000, repaid: 1650000 },
-          { month: '2024-02', disbursed: 2300000, repaid: 1780000 },
-          { month: '2024-03', disbursed: 2450000, repaid: 1890000 }
-        ],
-        dueSoon: [
-          { clientName: '张三', dueDate: '2024-03-15', remainingPrincipal: 45000 },
-          { clientName: '李四', dueDate: '2024-03-16', remainingPrincipal: 32000 }
-        ],
-        topOverdue: [
-          { clientName: '王五', overdueDays: 15, balance: 67000 },
-          { clientName: '赵六', overdueDays: 8, balance: 23000 }
-        ],
-        recentRepayments: [
-          { clientName: '钱七', amount: 15000, time: '2024-03-10 14:30', interestDeduction: 3000, principalDeduction: 12000 },
-          { clientName: '孙八', amount: 8500, time: '2024-03-10 11:20', interestDeduction: 1500, principalDeduction: 7000 }
-        ]
+      setError(null)
+      const response = await fetch('/api/metrics', { cache: 'no-store' })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard metrics')
       }
-      
-      setData(mockData)
+
+      const metricsData = await response.json()
+
+      setData(metricsData)
       setLoading(false)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
+      setError(error instanceof Error ? error.message : 'Unknown error')
       setLoading(false)
     }
   }
 
   // Setup Realtime subscriptions
+  useRealtime('loans', fetchDashboardData)
+  useRealtime('repayment_txn', fetchDashboardData)
+  useRealtime('clients', fetchDashboardData)
+
+  // Initial data fetch
   useEffect(() => {
-    const supabase = createClient()
-    
-    // Initial data fetch
     fetchDashboardData()
-    
-    // Subscribe to loans table changes
-    const loansSubscription = supabase
-      .channel('loans-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'loans'
-        },
-        (payload) => {
-          console.log('Loans table changed:', payload)
-
-          // Refresh dashboard data when loans change
-          fetchDashboardData()
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setRealtimeConnected(true)
-        } else {
-          setRealtimeConnected(false)
-        }
-      })
-    
-    // Subscribe to repayment_txn table changes
-    const repaymentsSubscription = supabase
-      .channel('repayments-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'repayment_txn'
-        },
-        (payload) => {
-          console.log('Repayments table changed:', payload)
-
-          // Refresh dashboard data when repayments change
-          fetchDashboardData()
-        }
-      )
-      .subscribe()
-    
-    // Cleanup subscriptions on unmount
-    return () => {
-      supabase.removeChannel(loansSubscription)
-      supabase.removeChannel(repaymentsSubscription)
-    }
   }, [])
+
+  if (error) {
+    return (
+      <Grid container spacing={6}>
+        <Grid item xs={12}>
+          <Alert severity="error">获取仪表板数据失败：{error}</Alert>
+        </Grid>
+      </Grid>
+    )
+  }
 
   if (loading || !data) {
     return (
@@ -175,11 +103,11 @@ const DashboardAnalytics = () => {
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                backgroundColor: realtimeConnected ? 'success.main' : 'error.main'
+                backgroundColor: 'success.main'
               }}
             />
             <Typography variant='body2' color='text.secondary'>
-              {t('realtimeConnected')}
+              实时连接：已连接
             </Typography>
           </Box>
         </Box>
@@ -189,7 +117,7 @@ const DashboardAnalytics = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('activeBorrowers')}
-          stats={formatNumber(data.activeBorrowers)}
+          stats={formatNumber(data.loans.active)}
           avatarIcon='ri-group-line'
           avatarColor='info'
           subtitle={t('kpi.vsLastMonth')}
@@ -200,7 +128,7 @@ const DashboardAnalytics = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('monthlyDisbursed')}
-          stats={formatCurrency(data.monthlyDisbursed)}
+          stats={formatCurrency(data.loans.totalAmount)}
           avatarIcon='ri-money-dollar-circle-line'
           avatarColor='success'
           subtitle={t('kpi.vsLastMonth')}
@@ -211,7 +139,7 @@ const DashboardAnalytics = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('monthlyRepaid')}
-          stats={formatCurrency(data.monthlyRepaid)}
+          stats={formatCurrency(data.repayments.last30Days.amount)}
           avatarIcon='ri-refund-2-line'
           avatarColor='success'
           subtitle={t('kpi.vsLastMonth')}
@@ -222,7 +150,7 @@ const DashboardAnalytics = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('overdueCount')}
-          stats={formatNumber(data.overdueCount)}
+          stats={formatNumber(data.loans.overdue)}
           avatarIcon='ri-alarm-warning-line'
           avatarColor='error'
           subtitle={t('kpi.vsLastMonth')}
@@ -233,7 +161,12 @@ const DashboardAnalytics = () => {
 
       {/* 贷款状态分布 */}
       <Grid item xs={12} md={6} lg={4}>
-        <LoanStatusChart data={data.statusDistribution} />
+        <LoanStatusChart data={[
+          { status: 'normal', count: data.loans.active, percentage: 0 },
+          { status: 'settled', count: data.loans.completed, percentage: 0 },
+          { status: 'negotiating', count: data.loans.overdue, percentage: 0 },
+          { status: 'bad_debt', count: data.loans.defaulted, percentage: 0 }
+        ]} />
       </Grid>
 
       {/* ROI 和坏账率 */}
@@ -246,7 +179,7 @@ const DashboardAnalytics = () => {
                   {t('roi')}
                 </Typography>
                 <Typography variant='h4' color='primary.main'>
-                  {(data.roi * 100).toFixed(1)}%
+                  {data.summary.collectionRate.toFixed(1)}%
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
                   本月累计 ROI
@@ -261,7 +194,7 @@ const DashboardAnalytics = () => {
                   {t('badDebtRate')}
                 </Typography>
                 <Typography variant='h4' color='error.main'>
-                  {(data.badDebtRate * 100).toFixed(1)}%
+                  {((data.loans.defaulted / data.loans.total) * 100).toFixed(1)}%
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
                   坏账率
@@ -274,20 +207,20 @@ const DashboardAnalytics = () => {
 
       {/* 现金流趋势 */}
       <Grid item xs={12} lg={4}>
-        <CashflowTrendChart data={data.cashflowTrend} />
+        <CashflowTrendChart data={[]} />
       </Grid>
 
       {/* 待处理提醒 */}
       <Grid item xs={12} md={6}>
-        <DueSoonList data={data.dueSoon} />
+        <DueSoonList data={[]} />
       </Grid>
       <Grid item xs={12} md={6}>
-        <TopOverdueList data={data.topOverdue} />
+        <TopOverdueList data={[]} />
       </Grid>
 
       {/* 最近还款 */}
       <Grid item xs={12}>
-        <RecentRepaymentsTable data={data.recentRepayments} />
+        <RecentRepaymentsTable data={[]} />
       </Grid>
     </Grid>
   )

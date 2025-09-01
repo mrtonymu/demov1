@@ -1,5 +1,8 @@
 'use client'
 
+// React Imports
+import { useState, useEffect } from 'react'
+
 // MUI Imports
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -18,8 +21,14 @@ import { useTranslations } from 'next-intl'
 // Utils Imports
 import { useFormatters } from '@/utils/formatters'
 
+// Hooks Imports
+import { useRealtime } from '@/hooks/useRealtime'
+
 // Component Imports
 import CardStatVertical from '@components/card-statistics/Vertical'
+
+// Types
+import type { Loan } from '@/types/cr3dify'
 
 const LoansPage = () => {
   // Hooks
@@ -27,42 +36,64 @@ const LoansPage = () => {
   const tCommon = useTranslations('common')
   const { formatCurrency } = useFormatters()
 
-  // 模拟贷款数据
-  const loanData = [
-    {
-      id: 'LN001',
-      customerName: '张三',
-      amount: 150000,
-      interestRate: 5.5,
-      term: 24,
-      status: 'active',
-      startDate: '2024-01-15',
-      nextPayment: '2024-03-15',
-      remainingBalance: 125000
-    },
-    {
-      id: 'LN002',
-      customerName: '李四',
-      amount: 80000,
-      interestRate: 6.0,
-      term: 12,
-      status: 'pending',
-      startDate: '2024-02-20',
-      nextPayment: '2024-03-20',
-      remainingBalance: 80000
-    },
-    {
-      id: 'LN003',
-      customerName: '王五',
-      amount: 200000,
-      interestRate: 5.0,
-      term: 36,
-      status: 'completed',
-      startDate: '2023-01-10',
-      nextPayment: '-',
-      remainingBalance: 0
+  // States
+  const [loanData, setLoanData] = useState<Loan[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    pending: 0,
+    overdue: 0,
+    totalAmount: 0,
+    activeAmount: 0,
+    outstanding: 0
+  })
+
+  // Fetch loans data
+  const fetchLoans = async () => {
+    try {
+      const response = await fetch('/api/loans')
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch loans')
+      }
+
+      const data = await response.json()
+      setLoanData(data)
+
+        // Calculate stats
+        const total = data.length
+        const active = data.filter((l: Loan) => l.status === 'normal').length
+        const pending = data.filter((l: Loan) => l.status === 'negotiating').length
+        const overdue = data.filter((l: Loan) => l.status === 'bad_debt').length
+        const totalAmount = data.reduce((sum: number, l: Loan) => sum + l.principal_amount, 0)
+        const activeAmount = data
+          .filter((l: Loan) => l.status === 'normal')
+          .reduce((sum: number, l: Loan) => sum + l.outstanding_balance, 0)
+
+        const outstanding = data.reduce((sum: number, l: Loan) => sum + (l.outstanding_balance || 0), 0)
+
+        setStats({ total, active, pending, overdue, totalAmount, activeAmount, outstanding })
+
+        setLoading(false)
+    } catch (error) {
+      console.error('Error fetching loans:', error)
+      setLoading(false)
+
+      return
     }
-  ]
+  }
+
+  // Setup realtime subscription
+  useRealtime('loan', () => {
+    fetchLoans()
+  })
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchLoans()
+  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -100,7 +131,7 @@ const LoansPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('totalLoans')}
-          stats='456'
+          stats={loading ? '...' : stats.total.toString()}
           avatarIcon='ri-file-list-3-line'
           avatarColor='primary'
           subtitle={t('allLoans')}
@@ -111,7 +142,7 @@ const LoansPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('activeLoans')}
-          stats='234'
+          stats={loading ? '...' : stats.active.toString()}
           avatarIcon='ri-check-line'
           avatarColor='success'
           subtitle={t('currentlyActive')}
@@ -122,7 +153,7 @@ const LoansPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('pendingApprovals')}
-          stats='23'
+          stats={loading ? '...' : stats.pending.toString()}
           avatarIcon='ri-time-line'
           avatarColor='warning'
           subtitle={t('awaitingApproval')}
@@ -133,7 +164,7 @@ const LoansPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('totalOutstanding')}
-          stats={formatCurrency(2450000)}
+          stats={loading ? '...' : formatCurrency(stats.outstanding)}
           avatarIcon='ri-money-dollar-circle-line'
           avatarColor='info'
           subtitle={t('remainingBalance')}
@@ -208,7 +239,7 @@ const LoansPage = () => {
                             {loan.id}
                           </Typography>
                           <Typography variant='body2' color='text.secondary'>
-                            {loan.customerName}
+                            {loan.client?.full_name || 'N/A'}
                           </Typography>
                         </Grid>
                         <Grid item xs={12} sm={6} md={2}>
@@ -216,7 +247,7 @@ const LoansPage = () => {
                             {t('amount')}
                           </Typography>
                           <Typography variant='h6'>
-                            {formatCurrency(loan.amount)}
+                            {formatCurrency(loan.principal_amount)}
                           </Typography>
                         </Grid>
                         <Grid item xs={12} sm={6} md={2}>
@@ -224,7 +255,7 @@ const LoansPage = () => {
                             {t('interestRate')}
                           </Typography>
                           <Typography variant='h6'>
-                            {loan.interestRate}%
+                            {loan.interest_rate}%
                           </Typography>
                         </Grid>
                         <Grid item xs={12} sm={6} md={2}>
@@ -232,7 +263,7 @@ const LoansPage = () => {
                             {t('remainingBalance')}
                           </Typography>
                           <Typography variant='h6'>
-                            {formatCurrency(loan.remainingBalance)}
+                            {formatCurrency(loan.outstanding_balance)}
                           </Typography>
                         </Grid>
                         <Grid item xs={12} sm={6} md={2}>
