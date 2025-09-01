@@ -15,6 +15,6 @@ export default createMiddleware({
 });
 
 export const config = {
-  // 匹配所有路径，除了API路由、静态文件等
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
+  // 匹配所有路径，除了API路由、静态文件、登录页面等
+  matcher: ['/((?!api|_next|_vercel|login|.*\..*).*)'],
 };

@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 // Next Intl Imports
-import { useTranslations } from 'next-intl'
+// import { useTranslations } from 'next-intl'
 
 // MUI Imports
 import Card from '@mui/material/Card'
@@ -21,7 +21,8 @@ import InputAdornment from '@mui/material/InputAdornment'
 import Checkbox from '@mui/material/Checkbox'
 import Button from '@mui/material/Button'
 import FormControlLabel from '@mui/material/FormControlLabel'
-import Divider from '@mui/material/Divider'
+
+// import Divider from '@mui/material/Divider'
 
 // Type Imports
 import type { Mode } from '@core/types'
@@ -38,7 +39,23 @@ import { createBrowserSupabaseClient } from '@/lib/supabase'
 
 const Login = ({ mode }: { mode: Mode }) => {
   // Hooks
-  const t = useTranslations('auth.login')
+  // const t = useTranslations('auth.login')
+  // 临时硬编码中文文本
+  const t = (key: string) => {
+    const translations: Record<string, string> = {
+      'title': '登录',
+      'subtitle': '请登录您的账户',
+      'email': '电邮',
+      'password': '密码',
+      'submit': '登录',
+      'submitting': '登录中...',
+      'rememberMe': '记住我',
+      'forgotPassword': '忘记密码？',
+      'toRegister': '没有账号？去注册'
+    }
+
+     return translations[key] || key
+   }
   
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
@@ -185,21 +202,7 @@ const Login = ({ mode }: { mode: Mode }) => {
                   {t('toRegister').split('？')[1]}
                 </Typography>
               </div>
-              <Divider className='gap-3'>or</Divider>
-              <div className='flex justify-center items-center gap-2'>
-                <IconButton size='small' className='text-facebook'>
-                  <i className='ri-facebook-fill' />
-                </IconButton>
-                <IconButton size='small' className='text-twitter'>
-                  <i className='ri-twitter-fill' />
-                </IconButton>
-                <IconButton size='small' className='text-github'>
-                  <i className='ri-github-fill' />
-                </IconButton>
-                <IconButton size='small' className='text-googlePlus'>
-                  <i className='ri-google-fill' />
-                </IconButton>
-              </div>
+
             </form>
           </div>
         </CardContent>

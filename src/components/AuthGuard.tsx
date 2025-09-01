@@ -27,7 +27,7 @@ const AuthGuard = ({ children }: ChildrenType) => {
         const { data: { user }, error } = await supabase.auth.getUser()
         
         if (error || !user) {
-          router.replace('/zh-MY/login')
+          router.replace('/login')
           
           return
         }
@@ -35,7 +35,7 @@ const AuthGuard = ({ children }: ChildrenType) => {
         setIsAuthenticated(true)
       } catch (error) {
         console.error('Auth check failed:', error)
-        router.replace('/zh-MY/login')
+        router.replace('/login')
       } finally {
         setIsLoading(false)
       }
@@ -48,7 +48,7 @@ const AuthGuard = ({ children }: ChildrenType) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_OUT' || !session) {
-        router.replace('/zh-MY/login')
+        router.replace('/login')
       } else if (event === 'SIGNED_IN' && session) {
         setIsAuthenticated(true)
       }

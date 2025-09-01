@@ -46,26 +46,63 @@ const DashboardAnalytics = () => {
   const fetchDashboardData = async () => {
     try {
       setError(null)
+      console.log('Fetching dashboard metrics...')
+      
       const result = await apiGet<DashboardMetrics>('/api/metrics')
+      
+      console.log('Dashboard API result:', { ok: result.ok, hasData: !!result.data, error: result.error })
 
       if (result.ok && result.data) {
         setData(result.data)
+        console.log('Dashboard data loaded successfully')
       } else {
-        throw new Error(result.error || 'Failed to fetch dashboard metrics')
+        
+        // 如果是认证错误，让AuthGuard处理重定向
+        if (result.error?.includes('Unauthorized') || result.error?.includes('401')) {
+          console.warn('Authentication expired, redirecting to login...')
+          
+          // AuthGuard会自动检测并重定向到登录页
+          return
+        }
+        
+        const errorMsg = result.error || 'Failed to fetch dashboard metrics'
+        console.error('Dashboard API error:', errorMsg)
+
+        throw new Error(errorMsg)
       }
 
       setLoading(false)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
-      setError(error instanceof Error ? error.message : 'Unknown error')
+      
+      // 检查是否是网络错误或认证错误
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      
+      if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+        console.warn('Authentication expired, redirecting to login...')
+        
+        return
+      }
+      
+      // 提供更友好的错误信息
+       
+       let friendlyError = errorMessage
+        
+        if (errorMessage.includes('fetch')) {
+        friendlyError = '网络连接失败，请检查网络连接后重试'
+      } else if (errorMessage.includes('timeout')) {
+        friendlyError = '请求超时，请稍后重试'
+      }
+      
+      setError(friendlyError)
       setLoading(false)
     }
   }
 
   // Setup Realtime subscriptions
-  useRealtime('loans', fetchDashboardData)
-  useRealtime('repayment_txn', fetchDashboardData)
-  useRealtime('clients', fetchDashboardData)
+  useRealtime({ table: 'loans', onUpdate: fetchDashboardData, onInsert: fetchDashboardData, onDelete: fetchDashboardData })
+  useRealtime({ table: 'repayment_txn', onUpdate: fetchDashboardData, onInsert: fetchDashboardData, onDelete: fetchDashboardData })
+  useRealtime({ table: 'clients', onUpdate: fetchDashboardData, onInsert: fetchDashboardData, onDelete: fetchDashboardData })
 
   // Initial data fetch
   useEffect(() => {
@@ -162,10 +199,10 @@ const DashboardAnalytics = () => {
       {/* 贷款状态分布 */}
       <Grid item xs={12} md={6} lg={4}>
         <LoanStatusChart data={[
-          { status: 'normal', count: data.loans.active, percentage: 0 },
-          { status: 'settled', count: data.loans.completed, percentage: 0 },
-          { status: 'negotiating', count: data.loans.overdue, percentage: 0 },
-          { status: 'bad_debt', count: data.loans.defaulted, percentage: 0 }
+          { status: 'normal', count: data.loans.active },
+          { status: 'settled', count: data.loans.completed },
+          { status: 'negotiating', count: data.loans.overdue },
+          { status: 'bad_debt', count: data.loans.defaulted }
         ]} />
       </Grid>
 

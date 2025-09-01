@@ -120,13 +120,13 @@ export default function AuthCallback() {
           } catch {
             // 如果关闭失败，1.5秒后重定向
             setTimeout(() => {
-              window.location.replace('/zh-MY/login?verified=1')
+              window.location.replace('/login?verified=1')
             }, 1500)
           }
         } else {
           // 1.5秒后重定向到登录页
           setTimeout(() => {
-            router.replace('/zh-MY/login?verified=1')
+            router.replace('/login?verified=1')
           }, 1500)
         }
       } catch (error) {

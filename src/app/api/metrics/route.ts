@@ -19,7 +19,7 @@ export async function GET() {
 
     if (userError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { ok: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
@@ -49,27 +49,30 @@ export async function GET() {
     // 检查错误
     if (clientsResult.error) {
       console.error('Error fetching clients metrics:', clientsResult.error)
+      console.error('Clients query details:', { tenant_id: user.id })
 
       return NextResponse.json(
-        { error: 'Failed to fetch clients metrics' },
+        { ok: false, error: 'Failed to fetch clients metrics', details: clientsResult.error.message },
         { status: 500 }
       )
     }
 
     if (loansResult.error) {
       console.error('Error fetching loans metrics:', loansResult.error)
+      console.error('Loans query details:', { tenant_id: user.id })
 
       return NextResponse.json(
-        { error: 'Failed to fetch loans metrics' },
+        { ok: false, error: 'Failed to fetch loans metrics', details: loansResult.error.message },
         { status: 500 }
       )
     }
 
     if (repaymentsResult.error) {
       console.error('Error fetching repayments metrics:', repaymentsResult.error)
+      console.error('Repayments query details:', { tenant_id: user.id })
 
       return NextResponse.json(
-        { error: 'Failed to fetch repayments metrics' },
+        { ok: false, error: 'Failed to fetch repayments metrics', details: repaymentsResult.error.message },
         { status: 500 }
       )
     }
@@ -125,12 +128,26 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json(metrics)
+    console.log('Dashboard metrics fetched successfully:', {
+      clientsTotal: clientMetrics.total,
+      loansTotal: loanMetrics.total,
+      repaymentsTotal: repaymentMetrics.totalCount,
+      tenant_id: user.id
+    })
+
+    return NextResponse.json({
+      ok: true,
+      data: metrics
+    })
   } catch (error) {
     console.error('Error fetching dashboard metrics:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { ok: false, error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

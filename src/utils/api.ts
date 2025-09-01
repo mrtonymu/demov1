@@ -51,6 +51,12 @@ export async function apiCall<T = any>(
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      
+      // 特殊处理认证错误
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Authentication required')
+      }
+      
       throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
     }
 
