@@ -11,8 +11,14 @@ import CardHeader from '@mui/material/CardHeader'
 import Typography from '@mui/material/Typography'
 import CardContent from '@mui/material/CardContent'
 
+// Next Intl Imports
+import { useTranslations } from 'next-intl'
+
 // Third Party Imports
 import type { ApexOptions } from 'apexcharts'
+
+// Utils Imports
+import { useFormatters } from '@/utils/formatters'
 
 // Components Imports
 import OptionsMenu from '@core/components/option-menu'
@@ -23,6 +29,8 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 const WeeklyOverview = () => {
   // Hooks
   const theme = useTheme()
+  const t = useTranslations('dashboard.weeklyOverview')
+  const { formatPercentage } = useFormatters()
 
   // Vars
   const divider = 'var(--mui-palette-divider)'
@@ -69,7 +77,7 @@ const WeeklyOverview = () => {
       }
     },
     xaxis: {
-      categories: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      categories: [t('sun'), t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat')],
       tickPlacement: 'on',
       labels: { show: false },
       axisTicks: { show: false },
@@ -90,23 +98,23 @@ const WeeklyOverview = () => {
   return (
     <Card>
       <CardHeader
-        title='Weekly Overview'
-        action={<OptionsMenu iconClassName='text-textPrimary' options={['Refresh', 'Update', 'Delete']} />}
+        title={t('title')}
+        action={<OptionsMenu iconClassName='text-textPrimary' options={[t('refresh'), t('update'), t('delete')]} />}
       />
       <CardContent sx={{ '& .apexcharts-xcrosshairs.apexcharts-active': { opacity: 0 } }}>
         <AppReactApexCharts
           type='bar'
           height={206}
           width='100%'
-          series={[{ name: 'Sales', data: [37, 57, 45, 75, 57, 40, 65] }]}
+          series={[{ name: t('sales'), data: [37, 57, 45, 75, 57, 40, 65] }]}
           options={options}
         />
         <div className='flex items-center mbe-4 gap-4'>
-          <Typography variant='h4'>45%</Typography>
-          <Typography>Your sales performance is 45% 😎 better compared to last month</Typography>
+          <Typography variant='h4'>{formatPercentage(45)}</Typography>
+          <Typography>{t('performance')}</Typography>
         </div>
         <Button fullWidth variant='contained'>
-          Details
+          {t('details')}
         </Button>
       </CardContent>
     </Card>

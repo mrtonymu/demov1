@@ -31,6 +31,9 @@ const button: Theme['components'] = {
   MuiButton: {
     styleOverrides: {
       root: ({ theme, ownerState }) => ({
+        textTransform: 'none',
+        borderRadius: 8,
+        boxShadow: 'none',
         ...(ownerState.variant === 'text'
           ? {
               ...(ownerState.size === 'small' && {
@@ -70,10 +73,10 @@ const button: Theme['components'] = {
             })
       }),
       contained: ({ ownerState }) => ({
-        boxShadow: 'var(--mui-customShadows-xs)',
+        boxShadow: 'none',
         ...(!ownerState.disabled && {
           '&:hover, &.Mui-focusVisible': {
-            boxShadow: 'var(--mui-customShadows-xs)'
+            boxShadow: 'none'
           },
           '&:active': {
             boxShadow: 'none'
@@ -295,6 +298,7 @@ const button: Theme['components'] = {
       {
         props: { variant: 'contained', color: 'primary' },
         style: {
+          boxShadow: '0 2px 6px rgba(145,85,253,0.28)',
           '&:not(.Mui-disabled):active, &.Mui-focusVisible:not(:has(span.MuiTouchRipple-root))': {
             backgroundColor: 'var(--mui-palette-primary-dark)'
           },

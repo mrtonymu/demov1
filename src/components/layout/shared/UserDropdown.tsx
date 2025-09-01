@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import type { MouseEvent } from 'react'
 
 // Next Imports
@@ -21,6 +21,9 @@ import Divider from '@mui/material/Divider'
 import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
 
+// Utils Imports
+import { createBrowserSupabaseClient } from '@/lib/supabase'
+
 // Styled component for badge content
 const BadgeContentSpan = styled('span')({
   width: 8,
@@ -34,12 +37,50 @@ const BadgeContentSpan = styled('span')({
 const UserDropdown = () => {
   // States
   const [open, setOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Refs
   const anchorRef = useRef<HTMLDivElement>(null)
 
   // Hooks
   const router = useRouter()
+  const supabase = createBrowserSupabaseClient()
+
+  // 获取用户信息
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error || !user) {
+          router.replace('/login')
+
+          return
+        }
+
+        // 获取用户详细信息
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        setUser({
+          ...user,
+          profile
+        })
+      } catch (error) {
+        console.error('获取用户信息失败:', error)
+        router.replace('/login')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    getUser()
+  }, [router, supabase])
+
 
   const handleDropdownOpen = () => {
     !open ? setOpen(true) : setOpen(false)
@@ -57,6 +98,42 @@ const UserDropdown = () => {
     setOpen(false)
   }
 
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST'
+      })
+
+      if (response.ok) {
+        router.replace('/login')
+      } else {
+        console.error('登出失败')
+      }
+    } catch (error) {
+      console.error('登出错误:', error)
+    }
+    
+    setOpen(false)
+  }
+
+  if (isLoading) {
+
+    return (
+      <div className="animate-pulse">
+        <div className="rounded-full bg-gray-300 h-[38px] w-[38px]"></div>
+      </div>
+    )
+  }
+
+  if (!user) {
+
+    return null
+  }
+
+  const displayName = user.profile?.full_name || user.email?.split('@')[0] || 'User'
+  const userEmail = user.email || ''
+  const avatarUrl = user.profile?.avatar_url || '/images/avatars/1.png'
+
   return (
     <>
       <Badge
@@ -68,8 +145,8 @@ const UserDropdown = () => {
       >
         <Avatar
           ref={anchorRef}
-          alt='John Doe'
-          src='/images/avatars/1.png'
+          alt={displayName}
+          src={avatarUrl}
           onClick={handleDropdownOpen}
           className='cursor-pointer bs-[38px] is-[38px]'
         />
@@ -93,12 +170,12 @@ const UserDropdown = () => {
               <ClickAwayListener onClickAway={e => handleDropdownClose(e as MouseEvent | TouchEvent)}>
                 <MenuList>
                   <div className='flex items-center plb-2 pli-4 gap-2' tabIndex={-1}>
-                    <Avatar alt='John Doe' src='/images/avatars/1.png' />
+                    <Avatar alt={displayName} src={avatarUrl} />
                     <div className='flex items-start flex-col'>
                       <Typography className='font-medium' color='text.primary'>
-                        John Doe
+                        {displayName}
                       </Typography>
-                      <Typography variant='caption'>Admin</Typography>
+                      <Typography variant='caption'>{userEmail}</Typography>
                     </div>
                   </div>
                   <Divider className='mlb-1' />
@@ -125,7 +202,7 @@ const UserDropdown = () => {
                       color='error'
                       size='small'
                       endIcon={<i className='ri-logout-box-r-line' />}
-                      onClick={e => handleDropdownClose(e, '/login')}
+                      onClick={handleLogout}
                       sx={{ '& .MuiButton-endIcon': { marginInlineStart: 1.5 } }}
                     >
                       Logout

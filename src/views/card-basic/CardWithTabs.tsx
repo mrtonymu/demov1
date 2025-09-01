@@ -14,8 +14,14 @@ import TabPanel from '@mui/lab/TabPanel'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 
+// Next Intl Imports
+import { useTranslations } from 'next-intl'
+
 const CardWithTabs = () => {
-  // ** State
+  // Hooks
+  const t = useTranslations('cardBasic.cardWithTabs')
+
+  // State
   const [value, setValue] = useState<string>('1')
 
   const handleChange = (event: SyntheticEvent, newValue: string) => {
@@ -26,40 +32,37 @@ const CardWithTabs = () => {
     <Card>
       <TabContext value={value}>
         <TabList onChange={handleChange} aria-label='card navigation examples'>
-          <Tab value='1' label='Item One' />
-          <Tab value='2' label='Item Two' />
-          <Tab value='3' label='Item Three' />
+          <Tab value='1' label={t('itemOne')} />
+          <Tab value='2' label={t('itemTwo')} />
+          <Tab value='3' label={t('itemThree')} />
         </TabList>
         <CardContent>
           <TabPanel value='1'>
             <Typography variant='h5' className='mbe-2'>
-              Header One
+              {t('headerOne')}
             </Typography>
             <Typography className='mbe-6'>
-              Pudding tiramisu caramels. Gingerbread gummies danish chocolate bar toffee marzipan. Wafer wafer cake
-              powder danish oat cake.
+              {t('contentOne')}
             </Typography>
-            <Button variant='contained'>Button One</Button>
+            <Button variant='contained'>{t('buttonOne')}</Button>
           </TabPanel>
           <TabPanel value='2'>
             <Typography variant='h5' className='mbe-2'>
-              Header Two
+              {t('headerTwo')}
             </Typography>
             <Typography className='mbe-6'>
-              Dragée chupa chups soufflé cheesecake jelly tootsie roll cupcake marzipan. Carrot cake sweet roll gummi
-              bears caramels jelly beans.
+              {t('contentTwo')}
             </Typography>
-            <Button variant='contained'>Button Two</Button>
+            <Button variant='contained'>{t('buttonTwo')}</Button>
           </TabPanel>
           <TabPanel value='3'>
             <Typography variant='h5' className='mbe-2'>
-              Header Three
+              {t('headerThree')}
             </Typography>
             <Typography className='mbe-6'>
-              Icing cake macaroon macaroon jelly chocolate bar. Chupa chups dessert dessert soufflé chocolate bar
-              jujubes gummi bears lollipop.
+              {t('contentThree')}
             </Typography>
-            <Button variant='contained'>Button Three</Button>
+            <Button variant='contained'>{t('buttonThree')}</Button>
           </TabPanel>
         </CardContent>
       </TabContext>

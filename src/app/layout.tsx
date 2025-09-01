@@ -11,9 +11,9 @@ import '@/app/globals.css'
 import '@assets/iconify-icons/generated-icons.css'
 
 export const metadata = {
-  title: 'Demo: Materio - NextJS Dashboard Free',
+  title: 'CR3DIFY - 智能借贷管理系统',
   description:
-    'Develop next-level web apps with Materio Dashboard Free - NextJS. Now, updated with lightning-fast routing powered by MUI and App router.'
+    'CR3DIFY 是一个现代化的借贷管理系统，提供客户管理、贷款管理、还款记录等功能，助力金融业务数字化转型。'
 }
 
 const RootLayout = ({ children }: ChildrenType) => {

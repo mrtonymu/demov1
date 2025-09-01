@@ -1,12 +1,15 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 
 // Next Imports
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+// Next Intl Imports
+import { useTranslations } from 'next-intl'
 
 // MUI Imports
 import Card from '@mui/material/Card'
@@ -27,15 +30,23 @@ import type { Mode } from '@core/types'
 import Logo from '@components/layout/shared/Logo'
 import Illustrations from '@components/Illustrations'
 
-// Config Imports
-import themeConfig from '@configs/themeConfig'
-
 // Hook Imports
 import { useImageVariant } from '@core/hooks/useImageVariant'
 
+// Utils Imports
+import { createBrowserSupabaseClient } from '@/lib/supabase'
+
 const Login = ({ mode }: { mode: Mode }) => {
+  // Hooks
+  const t = useTranslations('auth.login')
+  
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
 
   // Vars
   const darkImg = '/images/pages/auth-v1-mask-dark.png'
@@ -43,13 +54,62 @@ const Login = ({ mode }: { mode: Mode }) => {
 
   // Hooks
   const router = useRouter()
+  const searchParams = useSearchParams()
   const authBackground = useImageVariant(mode, lightImg, darkImg)
+  const supabase = createBrowserSupabaseClient()
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  // 检查用户是否已登录，如果已登录则重定向到dashboard
+   useEffect(() => {
+     const checkUser = async () => {
+       const { data: { user } } = await supabase.auth.getUser()
+       
+       if (user) {
+         router.replace('/')
+       }
+     }
+     
+     checkUser()
+   }, [router, supabase])
+
+  // 检查是否有验证成功的参数
+   useEffect(() => {
+     const verified = searchParams.get('verified')
+     
+     if (verified === '1') {
+       setSuccessMessage('邮箱验证成功，现在可以登录了！')
+     }
+   }, [searchParams])
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    router.push('/')
+    setIsLoading(true)
+    setError('')
+    setSuccessMessage('')
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '登录失败')
+      }
+
+      // 登录成功，重定向到dashboard
+      router.replace('/')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '登录失败，请重试')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -61,16 +121,39 @@ const Login = ({ mode }: { mode: Mode }) => {
           </Link>
           <div className='flex flex-col gap-5'>
             <div>
-              <Typography variant='h4'>{`Welcome to ${themeConfig.templateName}!👋🏻`}</Typography>
-              <Typography className='mbs-1'>Please sign-in to your account and start the adventure</Typography>
+              <Typography variant='h4'>{t('title')}</Typography>
+              <Typography className='mbs-1'>{t('subtitle')}</Typography>
+              {error && (
+                <Typography color='error' className='mbs-2'>
+                  {error}
+                </Typography>
+              )}
+              {successMessage && (
+                <Typography color='success.main' className='mbs-2'>
+                  {successMessage}
+                </Typography>
+              )}
             </div>
             <form noValidate autoComplete='off' onSubmit={handleSubmit} className='flex flex-col gap-5'>
-              <TextField autoFocus fullWidth label='Email' />
+              <TextField 
+                autoFocus 
+                fullWidth 
+                label={t('email')} 
+                type='email'
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+              />
               <TextField
                 fullWidth
-                label='Password'
+                label={t('password')}
                 id='outlined-adornment-password'
                 type={isPasswordShown ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position='end'>
@@ -79,6 +162,7 @@ const Login = ({ mode }: { mode: Mode }) => {
                         edge='end'
                         onClick={handleClickShowPassword}
                         onMouseDown={e => e.preventDefault()}
+                        disabled={isLoading}
                       >
                         <i className={isPasswordShown ? 'ri-eye-off-line' : 'ri-eye-line'} />
                       </IconButton>
@@ -87,18 +171,18 @@ const Login = ({ mode }: { mode: Mode }) => {
                 }}
               />
               <div className='flex justify-between items-center gap-x-3 gap-y-1 flex-wrap'>
-                <FormControlLabel control={<Checkbox />} label='Remember me' />
+                <FormControlLabel control={<Checkbox />} label={t('rememberMe')} disabled={isLoading} />
                 <Typography className='text-end' color='primary' component={Link} href='/forgot-password'>
-                  Forgot password?
+                  {t('forgotPassword')}
                 </Typography>
               </div>
-              <Button fullWidth variant='contained' type='submit'>
-                Log In
+              <Button fullWidth variant='contained' type='submit' disabled={isLoading || !email || !password}>
+                {isLoading ? t('submitting') : t('submit')}
               </Button>
               <div className='flex justify-center items-center flex-wrap gap-2'>
-                <Typography>New on our platform?</Typography>
+                <Typography>{t('toRegister').split('？')[0]}？</Typography>
                 <Typography component={Link} href='/register' color='primary'>
-                  Create an account
+                  {t('toRegister').split('？')[1]}
                 </Typography>
               </div>
               <Divider className='gap-3'>or</Divider>

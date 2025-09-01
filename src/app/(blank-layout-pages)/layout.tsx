@@ -1,3 +1,7 @@
+// Next Intl Imports
+import { NextIntlClientProvider } from 'next-intl'
+import { getMessages } from 'next-intl/server'
+
 // Type Imports
 import type { ChildrenType } from '@core/types'
 
@@ -5,14 +9,17 @@ import type { ChildrenType } from '@core/types'
 import Providers from '@components/Providers'
 import BlankLayout from '@layouts/BlankLayout'
 
-const Layout = ({ children }: ChildrenType) => {
+const Layout = async ({ children }: ChildrenType) => {
   // Vars
   const direction = 'ltr'
+  const messages = await getMessages()
 
   return (
-    <Providers direction={direction}>
-      <BlankLayout>{children}</BlankLayout>
-    </Providers>
+    <NextIntlClientProvider messages={messages}>
+      <Providers direction={direction}>
+        <BlankLayout>{children}</BlankLayout>
+      </Providers>
+    </NextIntlClientProvider>
   )
 }
 

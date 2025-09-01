@@ -1,10 +1,15 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import type { FormEvent } from 'react'
 
 // Next Imports
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+// Next Intl Imports
+import { useTranslations } from 'next-intl'
 
 // MUI Imports
 import Card from '@mui/material/Card'
@@ -28,18 +33,102 @@ import Logo from '@components/layout/shared/Logo'
 // Hook Imports
 import { useImageVariant } from '@core/hooks/useImageVariant'
 
+// Utils Imports
+import { createBrowserSupabaseClient } from '@/lib/supabase'
+
 const Register = ({ mode }: { mode: Mode }) => {
+  // Hooks
+  const t = useTranslations('auth.register')
+  
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   // Vars
   const darkImg = '/images/pages/auth-v1-mask-dark.png'
   const lightImg = '/images/pages/auth-v1-mask-light.png'
 
   // Hooks
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const authBackground = useImageVariant(mode, lightImg, darkImg)
+  const supabase = createBrowserSupabaseClient()
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
+
+  // 检查用户是否已登录，如果已登录则重定向到dashboard
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        router.replace('/')
+      }
+    }
+    
+    checkUser()
+  }, [router, supabase])
+
+  // 检查是否有验证成功的参数
+  useEffect(() => {
+    const verified = searchParams.get('verified')
+    
+    if (verified === '1') {
+      setSuccessMessage('邮箱验证成功，现在可以登录了！')
+    }
+  }, [searchParams])
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+    setSuccessMessage('')
+
+    if (!agreedToTerms) {
+       setError('请同意隐私政策和条款')
+       setIsLoading(false)
+       
+       return
+     }
+
+    try {
+      // 保存邮箱到 localStorage，用于重新发送验证邮件
+      localStorage.setItem('pendingVerificationEmail', email)
+
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password, full_name: fullName })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '注册失败')
+      }
+
+      // 注册成功
+      setSuccessMessage('验证邮件已发送，请前往邮箱完成验证。')
+      
+      // 清空表单
+      setFullName('')
+      setEmail('')
+      setPassword('')
+      setAgreedToTerms(false)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '注册失败，请重试')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className='flex flex-col justify-center items-center min-bs-[100dvh] relative p-6'>
@@ -48,16 +137,46 @@ const Register = ({ mode }: { mode: Mode }) => {
           <Link href='/' className='flex justify-center items-start mbe-6'>
             <Logo />
           </Link>
-          <Typography variant='h4'>Adventure starts here 🚀</Typography>
+          <Typography variant='h4'>{t('title')}</Typography>
           <div className='flex flex-col gap-5'>
-            <Typography className='mbs-1'>Make your app management easy and fun!</Typography>
-            <form noValidate autoComplete='off' onSubmit={e => e.preventDefault()} className='flex flex-col gap-5'>
-              <TextField autoFocus fullWidth label='Username' />
-              <TextField fullWidth label='Email' />
+            <Typography className='mbs-1'>{t('subtitle')}</Typography>
+            {error && (
+              <Typography color='error' className='mbs-2'>
+                {error}
+              </Typography>
+            )}
+            {successMessage && (
+              <Typography color='success.main' className='mbs-2'>
+                {successMessage}
+              </Typography>
+            )}
+            <form noValidate autoComplete='off' onSubmit={handleSubmit} className='flex flex-col gap-5'>
+              <TextField 
+                autoFocus 
+                fullWidth 
+                label={t('fullName')} 
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+              <TextField 
+                fullWidth 
+                label={t('email')} 
+                type='email'
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+              />
               <TextField
                 fullWidth
-                label='Password'
+                label={t('password')}
                 type={isPasswordShown ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position='end'>
@@ -66,6 +185,7 @@ const Register = ({ mode }: { mode: Mode }) => {
                         edge='end'
                         onClick={handleClickShowPassword}
                         onMouseDown={e => e.preventDefault()}
+                        disabled={isLoading}
                       >
                         <i className={isPasswordShown ? 'ri-eye-off-line' : 'ri-eye-line'} />
                       </IconButton>
@@ -74,23 +194,34 @@ const Register = ({ mode }: { mode: Mode }) => {
                 }}
               />
               <FormControlLabel
-                control={<Checkbox />}
+                control={
+                  <Checkbox 
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    disabled={isLoading}
+                  />
+                }
                 label={
                   <>
-                    <span>I agree to </span>
+                    <span>{t('agreeToTerms').split('隐私政策和条款')[0]}</span>
                     <Link className='text-primary' href='/' onClick={e => e.preventDefault()}>
-                      privacy policy & terms
+                      {t('privacyPolicy')}
                     </Link>
                   </>
                 }
               />
-              <Button fullWidth variant='contained' type='submit'>
-                Sign Up
+              <Button 
+                fullWidth 
+                variant='contained' 
+                type='submit'
+                disabled={isLoading || !fullName || !email || !password || !agreedToTerms}
+              >
+                {isLoading ? t('submitting') : t('submit')}
               </Button>
               <div className='flex justify-center items-center flex-wrap gap-2'>
-                <Typography>Already have an account?</Typography>
+                <Typography>{t('toLogin').split('？')[0]}？</Typography>
                 <Typography component={Link} href='/login' color='primary'>
-                  Sign in instead
+                  {t('toLogin').split('？')[1]}
                 </Typography>
               </div>
               <Divider className='gap-3'>Or</Divider>

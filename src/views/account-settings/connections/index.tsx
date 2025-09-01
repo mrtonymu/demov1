@@ -77,9 +77,9 @@ const socialAccountsArr: SocialAccountsType[] = [
   {
     title: 'Linkedin',
     isConnected: true,
-    username: '@ThemeSelection',
+    username: '@CR3DIFY',
     logo: '/images/logos/linkedin.png',
-    href: 'https://in.linkedin.com/company/themeselection'
+    href: 'https://cr3dify.com'
   },
   {
     title: 'Dribbble',

@@ -15,7 +15,7 @@ const NavToggle = () => {
     <>
       {/* <i className='ri-menu-line text-xl cursor-pointer' onClick={handleClick} /> */}
       {/* Comment following code and uncomment above code in order to toggle menu on desktop screens as well */}
-      {isBreakpointReached && <i className='ri-menu-line text-xl cursor-pointer' onClick={handleClick} />}
+      {isBreakpointReached && <i className='ri-menu-line text-xl cursor-pointer text-textSecondary' onClick={handleClick} />}
     </>
   )
 }

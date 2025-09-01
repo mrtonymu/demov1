@@ -7,6 +7,12 @@ import LinearProgress from '@mui/material/LinearProgress'
 
 import Typography from '@mui/material/Typography'
 
+// Next Intl Imports
+import { useTranslations } from 'next-intl'
+
+// Utils Imports
+import { useFormatters } from '@/utils/formatters'
+
 // Type Imports
 import type { ThemeColor } from '@core/types'
 
@@ -50,22 +56,26 @@ const data: DataType[] = [
 ]
 
 const TotalEarning = () => {
+  // Hooks
+  const t = useTranslations('dashboard.totalEarning')
+  const { formatCurrency, formatPercentage } = useFormatters()
+
   return (
     <Card>
       <CardHeader
-        title='Total Earning'
-        action={<OptionMenu iconClassName='text-textPrimary' options={['Last 28 Days', 'Last Month', 'Last Year']} />}
+        title={t('title')}
+        action={<OptionMenu iconClassName='text-textPrimary' options={[t('last28Days'), t('lastMonth'), t('lastYear')]} />}
       ></CardHeader>
       <CardContent className='flex flex-col gap-11 md:mbs-2.5'>
         <div>
           <div className='flex items-center'>
-            <Typography variant='h3'>$24,895</Typography>
+            <Typography variant='h3'>{formatCurrency(24895)}</Typography>
             <i className='ri-arrow-up-s-line align-bottom text-success'></i>
             <Typography component='span' color='success.main'>
-              10%
+              {formatPercentage(10)}
             </Typography>
           </div>
-          <Typography>Compared to $84,325 last year</Typography>
+          <Typography>{t('comparison')}</Typography>
         </div>
         <div className='flex flex-col gap-6'>
           {data.map((item, index) => (
@@ -80,7 +90,7 @@ const TotalEarning = () => {
                 </div>
                 <div className='flex flex-col gap-2 items-center'>
                   <Typography color='text.primary' className='font-medium'>
-                    {item.amount}
+                    {formatCurrency(parseFloat(item.amount.replace('$', '').replace(',', '')))}
                   </Typography>
                   <LinearProgress
                     variant='determinate'

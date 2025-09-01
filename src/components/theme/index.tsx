@@ -13,6 +13,7 @@ import {
 } from '@mui/material/styles'
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter'
 import CssBaseline from '@mui/material/CssBaseline'
+import { zhCN } from '@mui/material/locale'
 import type {} from '@mui/material/themeCssVarsAugmentation' //! Do not remove this import otherwise you will get type errors while making a production build
 import type {} from '@mui/lab/themeAugmentation' //! Do not remove this import otherwise you will get type errors while making a production build
 
@@ -23,7 +24,6 @@ import type { ChildrenType, Direction } from '@core/types'
 import ModeChanger from './ModeChanger'
 
 // Config Imports
-import themeConfig from '@configs/themeConfig'
 import primaryColorConfig from '@configs/primaryColorConfig'
 
 // Hook Imports
@@ -69,8 +69,11 @@ const ThemeProvider = (props: Props) => {
     }
 
     const coreTheme = deepmerge(defaultCoreTheme(settings.mode || 'light', direction), newColorScheme)
+    
+    // 添加中文本地化
+    const themeWithLocale = deepmerge(coreTheme, zhCN)
 
-    return extendTheme(coreTheme)
+    return extendTheme(themeWithLocale)
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.mode])
@@ -80,7 +83,7 @@ const ThemeProvider = (props: Props) => {
       <CssVarsProvider
         theme={theme}
         defaultMode={settings.mode}
-        modeStorageKey={`${themeConfig.templateName.toLowerCase().split(' ').join('-')}-mui-template-mode`}
+        modeStorageKey='cr3dify-mui-mode'
       >
         <>
           <ModeChanger />

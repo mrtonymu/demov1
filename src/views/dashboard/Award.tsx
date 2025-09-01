@@ -4,22 +4,31 @@ import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 
+// Next Intl Imports
+import { useTranslations } from 'next-intl'
+
+// Utils Imports
+import { useFormatters } from '@/utils/formatters'
+
 const Award = () => {
+  const t = useTranslations('dashboard.award')
+  const { formatCurrency, formatPercentage } = useFormatters()
+
   return (
     <Card>
       <CardContent className='flex flex-col gap-2 relative items-start'>
         <div>
-          <Typography variant='h5'>Congratulations John! 🎉</Typography>
-          <Typography>Best seller of the month</Typography>
+          <Typography variant='h5'>{t('congratulations')}</Typography>
+          <Typography>{t('bestSeller')}</Typography>
         </div>
         <div>
           <Typography variant='h4' color='primary'>
-            $42.8k
+            {formatCurrency(42800)}
           </Typography>
-          <Typography>78% of target 🚀</Typography>
+          <Typography>{formatPercentage(78)} {t('ofTarget')} 🚀</Typography>
         </div>
         <Button size='small' variant='contained'>
-          View Sales
+          {t('viewSales')}
         </Button>
         <img
           src='/images/pages/trophy.png'

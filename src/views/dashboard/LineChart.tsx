@@ -3,12 +3,19 @@
 // Next Imports
 import dynamic from 'next/dynamic'
 
-//MUI Imports
+// MUI Imports
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 
+// Next Intl Imports
+import { useTranslations } from 'next-intl'
+
+// Type Imports
 import type { ApexOptions } from 'apexcharts'
+
+// Utils Imports
+import { useFormatters } from '@/utils/formatters'
 
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
@@ -17,6 +24,10 @@ const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexChart
 const series = [{ data: [0, 20, 5, 30, 15, 45] }]
 
 const LineChart = () => {
+  // Hooks
+  const t = useTranslations('dashboard.lineChart')
+  const { formatCurrency } = useFormatters()
+
   const primaryColor = 'var(--mui-palette-primary-main)'
 
   const options: ApexOptions = {
@@ -77,10 +88,10 @@ const LineChart = () => {
   return (
     <Card>
       <CardContent>
-        <Typography variant='h4'>$86.4k</Typography>
+        <Typography variant='h4'>{formatCurrency(86400)}</Typography>
         <AppReactApexCharts type='line' height={88} width='100%' options={options} series={series} />
         <Typography color='text.primary' className='font-medium text-center'>
-          Total Profit
+          {t('totalProfit')}
         </Typography>
       </CardContent>
     </Card>

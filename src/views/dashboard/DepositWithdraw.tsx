@@ -1,3 +1,5 @@
+'use client'
+
 // MUI Imports
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
@@ -5,44 +7,50 @@ import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Grid from '@mui/material/Grid'
 
+// Next Intl Imports
+import { useTranslations } from 'next-intl'
+
 // Component Imports
 import Link from '@components/Link'
+
+// Utils Imports
+import { useFormatters } from '@/utils/formatters'
 
 type DataType = {
   logo: string
   title: string
-  amount: string
+  amount: number
   subtitle: string
 }
 
 // Vars
 const depositData: DataType[] = [
   {
-    amount: '+$4,650',
+    amount: 4650,
     subtitle: 'Sell UI Kit',
     title: 'Gumroad Account',
     logo: '/images/cards/gumroad.png'
   },
   {
-    amount: '+$92,705',
+    amount: 92705,
     title: 'Mastercard',
     subtitle: 'Wallet deposit',
     logo: '/images/logos/mastercard.png'
   },
   {
-    amount: '+$957',
+    amount: 957,
     title: 'Stripe Account',
     subtitle: 'iOS Application',
     logo: '/images/logos/stripe.png'
   },
   {
-    amount: '+$6,837',
+    amount: 6837,
     title: 'American Bank',
     subtitle: 'Bank Transfer',
     logo: '/images/logos/american-bank.png'
   },
   {
-    amount: '+$446',
+    amount: 446,
     title: 'Bank Account',
     subtitle: 'Wallet deposit',
     logo: '/images/logos/citi-bank.png'
@@ -51,31 +59,31 @@ const depositData: DataType[] = [
 
 const withdrawData = [
   {
-    amount: '-$145',
+    amount: -145,
     title: 'Google Adsense',
     subtitle: 'Paypal deposit',
     logo: '/images/logos/google.png'
   },
   {
-    amount: '-$1870',
+    amount: -1870,
     title: 'Github Enterprise',
     logo: '/images/logos/github.png',
     subtitle: 'Security & compliance'
   },
   {
-    amount: '-$450',
+    amount: -450,
     title: 'Upgrade Slack Plan',
     subtitle: 'Debit card deposit',
     logo: '/images/logos/slack.png'
   },
   {
-    amount: '-$540',
+    amount: -540,
     title: 'Digital Ocean',
     subtitle: 'Cloud Hosting',
     logo: '/images/logos/digital-ocean.png'
   },
   {
-    amount: '-$21',
+    amount: -21,
     title: 'AWS Account',
     logo: '/images/logos/aws.png',
     subtitle: 'Choosing a Cloud Platform'
@@ -83,15 +91,19 @@ const withdrawData = [
 ]
 
 const DepositWithdraw = () => {
+  // Hooks
+  const t = useTranslations('dashboard.depositWithdraw')
+  const { formatCurrency } = useFormatters()
+
   return (
     <Card>
       <Grid container>
         <Grid item xs={12} md={6} className='border-be md:border-be-0 md:border-ie'>
           <CardHeader
-            title='Deposit'
+            title={t('deposit')}
             action={
               <Typography component={Link} className='font-medium' color='primary'>
-                View All
+                {t('viewAll')}
               </Typography>
             }
           />
@@ -107,7 +119,7 @@ const DepositWithdraw = () => {
                     <Typography>{item.subtitle}</Typography>
                   </div>
                   <Typography color='success.main' className='font-medium'>
-                    {item.amount}
+                    {formatCurrency(item.amount)}
                   </Typography>
                 </div>
               </div>
@@ -116,10 +128,10 @@ const DepositWithdraw = () => {
         </Grid>
         <Grid item xs={12} md={6}>
           <CardHeader
-            title='Withdraw'
+            title={t('withdraw')}
             action={
               <Typography component={Link} className='font-medium' color='primary'>
-                View All
+                {t('viewAll')}
               </Typography>
             }
           />
@@ -135,7 +147,7 @@ const DepositWithdraw = () => {
                     <Typography>{item.subtitle}</Typography>
                   </div>
                   <Typography color='error.main' className='font-medium'>
-                    {item.amount}
+                    {formatCurrency(item.amount)}
                   </Typography>
                 </div>
               </div>

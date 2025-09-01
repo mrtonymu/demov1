@@ -5,6 +5,12 @@ import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Grid from '@mui/material/Grid'
 
+// Next Intl Imports
+import { useTranslations } from 'next-intl'
+
+// Utils Imports
+import { useFormatters } from '@/utils/formatters'
+
 // Type Imports
 import type { ThemeColor } from '@core/types'
 
@@ -19,44 +25,49 @@ type DataType = {
   color: ThemeColor
 }
 
-// Vars
-const data: DataType[] = [
-  {
-    stats: '245k',
-    title: 'Sales',
-    color: 'primary',
-    icon: 'ri-pie-chart-2-line'
-  },
-  {
-    stats: '12.5k',
-    title: 'Users',
-    color: 'success',
-    icon: 'ri-group-line'
-  },
-  {
-    stats: '1.54k',
-    color: 'warning',
-    title: 'Products',
-    icon: 'ri-macbook-line'
-  },
-  {
-    stats: '$88k',
-    color: 'info',
-    title: 'Revenue',
-    icon: 'ri-money-dollar-circle-line'
-  }
-]
+
 
 const Transactions = () => {
+  // Hooks
+  const t = useTranslations('dashboard.transactions')
+  const { formatPercentage } = useFormatters()
+
+  const data: DataType[] = [
+    {
+      stats: '245k',
+      title: t('sales'),
+      color: 'primary',
+      icon: 'ri-pie-chart-2-line'
+    },
+    {
+      stats: '12.5k',
+      title: t('users'),
+      color: 'success',
+      icon: 'ri-group-line'
+    },
+    {
+      stats: '1.54k',
+      color: 'warning',
+      title: t('products'),
+      icon: 'ri-macbook-line'
+    },
+    {
+      stats: '$88k',
+      color: 'info',
+      title: t('revenue'),
+      icon: 'ri-money-dollar-circle-line'
+    }
+  ]
+
   return (
     <Card className='bs-full'>
       <CardHeader
-        title='Transactions'
-        action={<OptionMenu iconClassName='text-textPrimary' options={['Refresh', 'Share', 'Update']} />}
+        title={t('title')}
+        action={<OptionMenu iconClassName='text-textPrimary' options={[t('refresh'), t('share'), t('update')]} />}
         subheader={
           <p className='mbs-3'>
-            <span className='font-medium text-textPrimary'>Total 48.5% Growth 😎</span>
-            <span className='text-textSecondary'>this month</span>
+            <span className='font-medium text-textPrimary'>{t('growth')} {formatPercentage(48.5)}</span>
+            <span className='text-textSecondary'>{t('thisMonth')} 😎</span>
           </p>
         }
       />

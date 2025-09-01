@@ -68,7 +68,7 @@ const Navigation = () => {
         <Link href='/'>
           <Logo />
         </Link>
-        {isBreakpointReached && <i className='ri-close-line text-xl' onClick={() => toggleVerticalNav(false)} />}
+        {isBreakpointReached && <i className='ri-close-line text-xl text-textSecondary' onClick={() => toggleVerticalNav(false)} />}
       </NavHeader>
       <StyledBoxForShadow ref={shadowRef} />
       <VerticalMenu scrollMenu={scrollMenu} />

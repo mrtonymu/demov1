@@ -1,0 +1,385 @@
+{
+  "common": {
+    "loading": "加载中…",
+    "noData": "暂无数据",
+    "retry": "重试",
+    "export": "导出",
+    "exportCSV": "导出 CSV",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除",
+    "edit": "编辑",
+    "add": "新增",
+    "search": "搜索",
+    "filter": "筛选",
+    "reset": "重置",
+    "submit": "提交",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "yes": "是",
+    "no": "否",
+    "all": "全部",
+    "processing": "处理中…",
+    "rowsPerPage": "每页行数",
+    "of": "共",
+    "moreThan": "超过",
+    "selectDateRange": "选择日期范围",
+    "actions": "操作"
+  },
+  "auth": {
+    "login": {
+      "title": "登录",
+      "subtitle": "请登录您的账户",
+      "email": "电邮",
+      "password": "密码",
+      "submit": "登录",
+      "submitting": "登录中...",
+      "rememberMe": "记住我",
+      "forgotPassword": "忘记密码？",
+      "toRegister": "没有账号？去注册"
+    },
+    "register": {
+      "title": "注册",
+      "subtitle": "创建您的账户",
+      "fullName": "姓名",
+      "email": "电邮",
+      "password": "密码",
+      "submit": "创建账户",
+      "submitting": "创建中...",
+      "agreeToTerms": "我同意隐私政策和条款",
+      "privacyPolicy": "隐私政策和条款",
+      "toLogin": "已有账号？去登录",
+      "emailSent": "验证邮件已发送，请前往邮箱完成验证。"
+    },
+    "forgotPassword": {
+      "title": "忘记密码 🔒",
+      "subtitle": "输入您的邮箱，我们将发送重置密码的说明",
+      "email": "电邮",
+      "submit": "发送重置链接",
+      "backToLogin": "返回登录"
+    },
+    "callback": {
+      "title": "邮箱验证",
+      "verifying": "正在验证...",
+      "success": "验证成功！正在跳转...",
+      "error": "验证失败，请重试"
+     },
+    "menu": {
+      "accountSettings": "账户设置",
+      "logout": "退出登录"
+    },
+    "errors": {
+      "invalid_credentials": "电邮或密码不正确",
+      "rate_limited": "操作太频繁，请稍后再试",
+      "email_not_confirmed": "请先验证您的邮箱",
+      "user_not_found": "用户不存在",
+      "weak_password": "密码强度不够",
+      "email_already_exists": "该邮箱已被注册",
+      "default": "请求失败，请稍后再试"
+    }
+  },
+  "navigation": {
+    "dashboard": "仪表板",
+    "analytics": "分析",
+    "clients": "客户管理",
+    "loans": "贷款管理",
+    "repayments": "还款管理",
+    "reports": "报表",
+    "settings": "设置",
+    "blacklist": "黑名单",
+    "approval": "审批",
+    "accountSettings": "账户设置"
+  },
+  "table": {
+    "searchPlaceholder": "搜索姓名 / 手机 / 身份证 / 客户代码",
+    "prev": "上一页",
+    "next": "下一页",
+    "rowsPerPage": "每页行数",
+    "of": "共",
+    "page": "页",
+    "noResults": "没有找到匹配的结果",
+    "actions": "操作",
+    "selectAll": "全选",
+    "selected": "已选择",
+    "items": "项"
+  },
+  "empty": {
+    "clients": "还没有客户，点击\"新增客户\"开始吧",
+    "loans": "还没有贷款记录",
+    "repayments": "暂无还款记录",
+    "general": "暂无数据"
+  },
+  "dashboard": {
+    "title": "仪表板",
+    "welcome": "欢迎回来",
+    "totalClients": "总客户数",
+    "activeLoans": "活跃贷款",
+    "totalAmount": "总金额",
+    "monthlyRevenue": "月收入",
+    "recentActivity": "最近活动",
+    "quickActions": "快速操作",
+    "addClient": "新增客户",
+    "addLoan": "新增贷款",
+    "viewReports": "查看报表",
+    "activeBorrowers": "在贷人数",
+    "monthlyDisbursed": "本月放款总额",
+    "monthlyRepaid": "本月回款总额",
+    "overdueCount": "逾期笔数",
+    "statusDistribution": "贷款状态分布",
+    "cashflowTrend": "现金流趋势",
+    "roi": "ROI（展示口径）",
+    "badDebtRate": "坏账率",
+    "dueSoon": "即将到期（7天内）",
+    "topOverdue": "逾期 Top 5",
+    "recentRepayments": "最近还款",
+    "viewAllLoans": "查看全部贷款",
+    "viewAllRepayments": "查看全部还款",
+    "writeDisabled": "当前为写入关闭模式",
+    "realtimeConnected": "实时已连接",
+    "loanStatus": {
+      "normal": "正常",
+      "settled": "清完",
+      "negotiating": "谈帐",
+      "bad_debt": "烂账"
+    },
+    "kpi": {
+      "vsLastMonth": "较上月",
+      "increase": "增长",
+      "decrease": "下降"
+    },
+    "charts": {
+      "disbursed": "放款",
+      "repayments": "回款",
+      "last12Months": "最近12个月",
+      "amount": "金额",
+      "count": "笔数",
+      "percentage": "占比"
+    },
+    "tables": {
+      "clientName": "客户姓名",
+      "dueDate": "到期日期",
+      "remainingPrincipal": "剩余本金",
+      "overdueDays": "逾期天数",
+      "balance": "余额",
+      "followUp": "去跟进",
+      "amount": "金额",
+      "time": "时间",
+      "interestDeduction": "利息抵扣",
+      "principalDeduction": "本金抵扣"
+    },
+    "stats": {
+      "totalProfit": "总利润",
+      "weeklyProfit": "周利润",
+      "newProjects": "新项目",
+      "annualProjects": "年度项目"
+    }
+  },
+  "forms": {
+    "required": "此字段为必填项",
+    "invalidEmail": "请输入有效的电邮地址",
+    "invalidPhone": "请输入有效的手机号码",
+    "passwordTooShort": "密码至少需要6个字符",
+    "passwordMismatch": "密码不匹配",
+    "invalidAmount": "请输入有效金额",
+    "invalidDate": "请选择有效日期",
+    "selectOption": "请选择选项"
+  },
+  "toast": {
+    "success": {
+      "saved": "保存成功",
+      "deleted": "删除成功",
+      "updated": "更新成功",
+      "created": "创建成功",
+      "sent": "发送成功"
+    },
+    "error": {
+      "saveFailed": "保存失败",
+      "deleteFailed": "删除失败",
+      "updateFailed": "更新失败",
+      "createFailed": "创建失败",
+      "sendFailed": "发送失败",
+      "networkError": "网络错误，请检查连接",
+      "serverError": "服务器错误，请稍后再试"
+    }
+  },
+  "status": {
+    "active": "活跃",
+    "inactive": "非活跃",
+    "pending": "待处理",
+    "approved": "已批准",
+    "rejected": "已拒绝",
+    "completed": "已完成",
+    "cancelled": "已取消",
+    "normal": "正常",
+    "settled": "已结清",
+    "negotiating": "协商中",
+    "bad_debt": "坏账",
+    "overdue": "逾期"
+  },
+  "currency": {
+    "myr": "马币",
+    "symbol": "RM"
+  },
+  "date": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "tomorrow": "明天",
+    "thisWeek": "本周",
+    "thisMonth": "本月",
+    "thisYear": "今年",
+    "format": {
+      "short": "YYYY年M月D日",
+      "long": "YYYY年M月D日 HH:mm",
+      "time": "HH:mm"
+    }
+  },
+  "errors": {
+      "404": {
+        "title": "页面未找到",
+        "subtitle": "抱歉，您访问的页面不存在",
+        "backHome": "返回首页"
+      },
+      "500": {
+        "title": "服务器错误",
+        "subtitle": "服务器遇到了问题，请稍后再试",
+        "retry": "重试"
+      },
+      "maintenance": {
+        "title": "系统维护中",
+        "subtitle": "我们正在进行系统维护，请稍后再试"
+      }
+     },
+  "writeProtection": {
+    "title": "写入保护模式",
+    "message": "当前处于只读模式，无法进行数据修改操作",
+    "contactAdmin": "如需修改数据，请联系管理员"
+  },
+  "footer": {
+    "copyright": "版权所有",
+    "madeWith": "用心制作",
+    "by": "由",
+    "license": "许可证",
+    "moreThemes": "更多主题",
+    "documentation": "文档",
+    "support": "支持"
+  },
+  "search": {
+    "placeholder": "搜索 ⌘K"
+  },
+  "auth": {
+    "callback": {
+      "verifying": "正在验证邮箱...",
+      "linkExpired": "链接已过期，请重新发送验证邮件。",
+      "linkInvalid": "链接无效或已使用。",
+      "verificationFailed": "验证失败，请重试。",
+      "success": "验证成功！正在跳转...",
+      "redirecting": "正在跳转到登录页面...",
+      "sessionError": "会话获取失败，请重新登录。",
+      "unexpectedError": "发生未知错误，请重试。"
+    }
+  },
+  "countries": {
+    "unitedStates": "美国",
+    "unitedKingdom": "英国",
+    "india": "印度",
+    "japan": "日本",
+    "korea": "韩国",
+    "salesByCountries": "各国销售情况"
+  },
+  "customers": {
+    "customerManagement": "客户管理",
+    "customerManagementDesc": "管理和查看所有客户信息",
+    "customerList": "客户列表",
+    "addCustomer": "添加客户",
+    "name": "姓名",
+    "email": "邮箱",
+    "phone": "电话",
+    "status": "状态",
+    "joinDate": "加入日期",
+    "totalLoans": "贷款数量",
+    "totalAmount": "总金额",
+    "active": "活跃",
+    "pending": "待审核",
+    "inactive": "非活跃",
+    "totalCustomers": "总客户数",
+    "totalCustomersDesc": "平台注册客户总数",
+    "activeCustomers": "活跃客户",
+    "activeCustomersDesc": "当前活跃的客户数量",
+    "newThisMonth": "本月新增",
+    "newThisMonthDesc": "本月新注册的客户",
+    "pendingApproval": "待审核",
+    "pendingApprovalDesc": "等待审核的客户申请",
+    "noCustomersFound": "未找到客户",
+    "searchCustomers": "搜索客户..."
+  },
+
+  "layout": {
+    "navbar": {
+      "notifications": "通知",
+      "profile": "个人资料",
+      "settings": "设置",
+      "logout": "退出登录",
+      "darkMode": "深色模式",
+      "lightMode": "浅色模式",
+      "language": "语言"
+    },
+    "sidebar": {
+      "collapse": "收起侧边栏",
+      "expand": "展开侧边栏",
+      "menu": "菜单"
+    },
+    "footer": {
+      "privacyPolicy": "隐私政策",
+      "termsOfService": "使用条款",
+      "allRightsReserved": "版权所有"
+    }
+  },
+  "notifications": {
+    "title": "通知",
+    "markAllRead": "全部标记为已读",
+    "noNotifications": "暂无通知",
+    "types": {
+      "info": "信息",
+      "success": "成功",
+      "warning": "警告",
+      "error": "错误"
+    },
+    "actions": {
+      "view": "查看",
+      "dismiss": "忽略",
+      "markRead": "标记为已读"
+    }
+  },
+  "theme": {
+    "mode": {
+      "light": "浅色模式",
+      "dark": "深色模式",
+      "system": "跟随系统"
+    },
+    "primaryColor": "主色调",
+    "layout": "布局",
+    "direction": {
+      "ltr": "从左到右",
+      "rtl": "从右到左"
+    }
+  },
+  "cardBasic": {
+    "cardWithTabs": {
+      "itemOne": "项目一",
+      "itemTwo": "项目二",
+      "itemThree": "项目三",
+      "headerOne": "标题一",
+      "headerTwo": "标题二",
+      "headerThree": "标题三",
+      "buttonOne": "按钮一",
+      "buttonTwo": "按钮二",
+      "buttonThree": "按钮三",
+      "contentOne": "布丁提拉米苏焦糖。姜饼软糖丹麦巧克力棒太妃糖杏仁糖。威化饼威化饼蛋糕粉丹麦燕麦蛋糕。",
+      "contentTwo": "拖拽棒棒糖舒芙蕾芝士蛋糕果冻卷心蛋糕杏仁糖。胡萝卜蛋糕甜卷软糖熊焦糖果冻豆。",
+      "contentThree": "糖霜蛋糕马卡龙马卡龙果冻巧克力棒。棒棒糖甜点甜点舒芙蕾巧克力棒软糖熊棒棒糖。"
+    }
+  }
+}
