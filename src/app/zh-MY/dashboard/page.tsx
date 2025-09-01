@@ -16,6 +16,7 @@ import Alert from '@mui/material/Alert'
 
 // Utils Imports
 import { useFormatters } from '@/utils/formatters'
+import { apiGet } from '@/utils/api'
 
 // Hooks Imports
 import { useRealtime } from '@/hooks/useRealtime'
@@ -45,15 +46,14 @@ const DashboardAnalytics = () => {
   const fetchDashboardData = async () => {
     try {
       setError(null)
-      const response = await fetch('/api/metrics', { cache: 'no-store' })
+      const result = await apiGet<DashboardMetrics>('/api/metrics')
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard metrics')
+      if (result.ok && result.data) {
+        setData(result.data)
+      } else {
+        throw new Error(result.error || 'Failed to fetch dashboard metrics')
       }
 
-      const metricsData = await response.json()
-
-      setData(metricsData)
       setLoading(false)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)

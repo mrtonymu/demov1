@@ -19,16 +19,27 @@ export async function GET(request: NextRequest) {
     const cookieStore = cookies()
     const supabase = createServerSupabaseClient(cookieStore)
     
+    // 获取当前用户
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('query') || ''
     const status = searchParams.get('status') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '10')
     
-    // 构建查询
+    // 构建查询（添加租户隔离）
     let queryBuilder = supabase
       .from('clients')
       .select('*', { count: 'exact' })
+      .eq('tenant_id', user.id)
     
     // 模糊搜索：姓名、手机、IC号码
     if (query) {
@@ -51,7 +62,7 @@ export async function GET(request: NextRequest) {
     queryBuilder = queryBuilder.order('created_at', { ascending: false })
 
     const { data, error, count } = await queryBuilder
-    
+
     if (error) {
       console.error('查询客户列表失败:', error)
 
@@ -92,6 +103,16 @@ export async function POST(request: NextRequest) {
     const cookieStore = cookies()
     const supabase = createServerSupabaseClient(cookieStore)
     
+    // 获取当前用户
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { full_name, ic_number, phone, email, address, status = 'active' } = body
     
@@ -103,11 +124,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 检查身份证号是否已存在
+    // 检查身份证号是否已存在（在当前租户下）
     const { data: existingClient } = await supabase
       .from('clients')
       .select('id')
       .eq('ic_number', ic_number)
+      .eq('tenant_id', user.id)
       .single()
     
     if (existingClient) {
@@ -117,7 +139,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // 创建客户
+    // 创建客户（添加租户ID）
     const { data, error } = await supabase
       .from('clients')
       .insert({
@@ -126,7 +148,8 @@ export async function POST(request: NextRequest) {
         phone,
         email: email || null,
         address: address || null,
-        status
+        status,
+        tenant_id: user.id
       })
       .select()
       .single()

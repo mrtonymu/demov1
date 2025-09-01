@@ -19,6 +19,16 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies()
     const supabase = createServerSupabaseClient(cookieStore)
     
+    // 获取当前用户
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const loan_id = searchParams.get('loan_id') || ''
     const from = searchParams.get('from') || ''
@@ -27,7 +37,7 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '10')
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : null
     
-    // 构建查询（包含贷款和客户信息）
+    // 构建查询（包含贷款和客户信息，添加租户隔离）
     let queryBuilder = supabase
       .from('repayment_txn')
       .select(`
@@ -45,6 +55,7 @@ export async function GET(request: NextRequest) {
           )
         )
       `, limit ? undefined : { count: 'exact' })
+      .eq('tenant_id', user.id)
     
     // 贷款筛选
     if (loan_id) {
@@ -72,7 +83,7 @@ export async function GET(request: NextRequest) {
     }
     
     const { data, error, count } = await queryBuilder
-    
+
     if (error) {
       console.error('查询还款记录失败:', error)
 
@@ -119,6 +130,16 @@ export async function POST(request: NextRequest) {
     const cookieStore = await cookies()
     const supabase = createServerSupabaseClient(cookieStore)
     
+    // 获取当前用户
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { loan_id, amount_in } = body
     
@@ -137,11 +158,12 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // 获取贷款信息
+    // 获取贷款信息（添加租户隔离）
     const { data: loan, error: loanError } = await supabase
       .from('loans')
       .select('*')
       .eq('id', loan_id)
+      .eq('tenant_id', user.id)
       .single()
     
     if (loanError || !loan) {
@@ -204,7 +226,8 @@ export async function POST(request: NextRequest) {
         amount_in,
         alloc_interest: allocInterest,
         alloc_principal: allocPrincipal,
-        kind: repaymentKind
+        kind: repaymentKind,
+        tenant_id: user.id
       })
       .select(`
         *,

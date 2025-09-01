@@ -19,6 +19,16 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies()
     const supabase = createServerSupabaseClient(cookieStore)
     
+    // 获取当前用户
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || ''
     const client_id = searchParams.get('client_id') || ''
@@ -33,6 +43,7 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabase
         .from('loans')
         .select('status')
+        .eq('tenant_id', user.id)
       
       if (error) {
         console.error('查询贷款状态分布失败:', error)
@@ -58,8 +69,8 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({ data: distribution })
     }
-    
-    // 构建查询（包含客户信息）
+
+    // 构建查询（包含客户信息，添加租户隔离）
     let queryBuilder = supabase
       .from('loans')
       .select(`
@@ -72,6 +83,7 @@ export async function GET(request: NextRequest) {
           email
         )
       `, { count: 'exact' })
+      .eq('tenant_id', user.id)
     
     // 状态筛选
     if (status) {
@@ -100,7 +112,7 @@ export async function GET(request: NextRequest) {
     queryBuilder = queryBuilder.order('created_at', { ascending: false })
     
     const { data, error, count } = await queryBuilder
-    
+
     if (error) {
       console.error('查询贷款列表失败:', error)
 
@@ -135,12 +147,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // 检查写入权限
-    const writeGuard = guardWrite()
+    const writeGuard = await guardWrite()
     if (writeGuard) return writeGuard
-    
+
     const cookieStore = await cookies()
     const supabase = createServerSupabaseClient(cookieStore)
     
+    // 获取当前用户
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const {
       client_id,
@@ -167,11 +189,12 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // 检查客户是否存在
+    // 检查客户是否存在（在当前租户下）
     const { data: client } = await supabase
       .from('clients')
       .select('id, status')
       .eq('id', client_id)
+      .eq('tenant_id', user.id)
       .single()
     
     if (!client) {
@@ -192,7 +215,7 @@ export async function POST(request: NextRequest) {
     const interestAmount = deduct_interest ? (principal - disbursed) : 0
     const actualDepositAmount = collect_deposit ? deposit_amount : 0
     
-    // 创建贷款记录
+    // 创建贷款记录（添加租户ID）
     const { data, error } = await supabase
       .from('loans')
       .insert({
@@ -203,7 +226,8 @@ export async function POST(request: NextRequest) {
         interest_balance: interestAmount,
         deposit_amount: actualDepositAmount,
         deposit_policy: collect_deposit ? deposit_policy : 'none',
-        status: 'normal'
+        status: 'normal',
+        tenant_id: user.id
       })
       .select(`
         *,

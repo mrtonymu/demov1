@@ -4,6 +4,10 @@ import { cookies } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import type { DashboardMetrics } from '@/types/cr3dify'
 
+// 禁用缓存，确保动态渲染
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // 获取仪表板指标数据
 export async function GET() {
   try {

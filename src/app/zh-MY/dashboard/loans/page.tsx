@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -15,11 +15,13 @@ import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 
+
 // Next Intl Imports
 import { useTranslations } from 'next-intl'
 
 // Utils Imports
 import { useFormatters } from '@/utils/formatters'
+import { apiGet } from '@/utils/api'
 
 // Hooks Imports
 import { useRealtime } from '@/hooks/useRealtime'
@@ -28,7 +30,7 @@ import { useRealtime } from '@/hooks/useRealtime'
 import CardStatVertical from '@components/card-statistics/Vertical'
 
 // Types
-import type { Loan } from '@/types/cr3dify'
+import type { Loan } from '@/types/database'
 
 const LoansPage = () => {
   // Hooks
@@ -39,61 +41,85 @@ const LoansPage = () => {
   // States
   const [loanData, setLoanData] = useState<Loan[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
 
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    pending: 0,
-    overdue: 0,
-    totalAmount: 0,
-    activeAmount: 0,
-    outstanding: 0
-  })
+
 
   // Fetch loans data
-  const fetchLoans = async () => {
+  const fetchLoans = useCallback(async () => {
     try {
-      const response = await fetch('/api/loans')
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch loans')
+      setLoading(true)
+      const result = await apiGet('/api/loans')
+      
+      if (result.ok) {
+        setLoanData(result.data || [])
+      } else {
+        console.error('Error fetching loans:', result.error)
       }
-
-      const data = await response.json()
-      setLoanData(data)
-
-        // Calculate stats
-        const total = data.length
-        const active = data.filter((l: Loan) => l.status === 'normal').length
-        const pending = data.filter((l: Loan) => l.status === 'negotiating').length
-        const overdue = data.filter((l: Loan) => l.status === 'bad_debt').length
-        const totalAmount = data.reduce((sum: number, l: Loan) => sum + l.principal_amount, 0)
-        const activeAmount = data
-          .filter((l: Loan) => l.status === 'normal')
-          .reduce((sum: number, l: Loan) => sum + l.outstanding_balance, 0)
-
-        const outstanding = data.reduce((sum: number, l: Loan) => sum + (l.outstanding_balance || 0), 0)
-
-        setStats({ total, active, pending, overdue, totalAmount, activeAmount, outstanding })
-
-        setLoading(false)
     } catch (error) {
       console.error('Error fetching loans:', error)
+    } finally {
       setLoading(false)
-
-      return
     }
+  }, [])
+
+  // Calculate stats
+  const computedStats = useMemo(() => {
+    const total = loanData.length
+    const active = loanData.filter((l: Loan) => l.status === 'normal').length
+    const pending = loanData.filter((l: Loan) => l.status === 'negotiating').length
+    const overdue = loanData.filter((l: Loan) => l.status === 'bad_debt').length
+
+    const totalAmount = loanData.reduce((sum: number, l: Loan) => sum + l.principal_amount, 0)
+    const activeAmount = loanData
+      .filter((l: Loan) => l.status === 'normal')
+      .reduce((sum: number, l: Loan) => sum + (l.outstanding_balance || 0), 0)
+    const outstanding = loanData.reduce((sum: number, l: Loan) => sum + (l.outstanding_balance || 0), 0)
+
+    return { total, active, pending, overdue, totalAmount, activeAmount, outstanding }
+  }, [loanData])
+
+  // Filter loans based on search and status
+  const filteredLoans = useMemo(() => {
+    return loanData.filter(loan => {
+      const matchesSearch = !searchQuery || 
+        loan.client?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        loan.id.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      const matchesStatus = !statusFilter || loan.status === statusFilter
+      
+      return matchesSearch && matchesStatus
+    })
+  }, [loanData, searchQuery, statusFilter])
+
+  // Handle new loan
+  const handleNewLoan = () => {
+    // TODO: Open new loan dialog
+    console.log('New loan clicked')
+  }
+
+  // Handle view loan
+  const handleViewLoan = (loan: Loan) => {
+    // TODO: Open loan details dialog
+    console.log('View loan:', loan.id)
+  }
+
+  // Handle edit loan
+  const handleEditLoan = (loan: Loan) => {
+    // TODO: Open edit loan dialog
+    console.log('Edit loan:', loan.id)
   }
 
   // Setup realtime subscription
-  useRealtime('loan', () => {
+  useRealtime('loans', () => {
     fetchLoans()
   })
 
   // Initial data fetch
   useEffect(() => {
     fetchLoans()
-  }, [])
+  }, [fetchLoans])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -131,7 +157,7 @@ const LoansPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('totalLoans')}
-          stats={loading ? '...' : stats.total.toString()}
+          stats={loading ? '...' : computedStats.total.toString()}
           avatarIcon='ri-file-list-3-line'
           avatarColor='primary'
           subtitle={t('allLoans')}
@@ -142,7 +168,7 @@ const LoansPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('activeLoans')}
-          stats={loading ? '...' : stats.active.toString()}
+          stats={loading ? '...' : computedStats.active.toString()}
           avatarIcon='ri-check-line'
           avatarColor='success'
           subtitle={t('currentlyActive')}
@@ -153,7 +179,7 @@ const LoansPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('pendingApprovals')}
-          stats={loading ? '...' : stats.pending.toString()}
+          stats={loading ? '...' : computedStats.pending.toString()}
           avatarIcon='ri-time-line'
           avatarColor='warning'
           subtitle={t('awaitingApproval')}
@@ -164,7 +190,7 @@ const LoansPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('totalOutstanding')}
-          stats={loading ? '...' : formatCurrency(stats.outstanding)}
+          stats={loading ? '...' : formatCurrency(computedStats.outstanding)}
           avatarIcon='ri-money-dollar-circle-line'
           avatarColor='info'
           subtitle={t('remainingBalance')}
@@ -182,6 +208,7 @@ const LoansPage = () => {
               <Button
                 variant='contained'
                 startIcon={<i className='ri-add-line' />}
+                onClick={handleNewLoan}
               >
                 {t('newLoan')}
               </Button>
@@ -194,6 +221,8 @@ const LoansPage = () => {
                 <TextField
                   fullWidth
                   placeholder={t('searchLoans')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position='start'>
@@ -208,13 +237,15 @@ const LoansPage = () => {
                   fullWidth
                   select
                   label={t('status')}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
                   SelectProps={{ native: true }}
                 >
                   <option value=''>{tCommon('all')}</option>
-                  <option value='active'>{t('active')}</option>
-                  <option value='pending'>{t('pending')}</option>
-                  <option value='completed'>{t('completed')}</option>
-                  <option value='overdue'>{t('overdue')}</option>
+                  <option value='normal'>{t('normal')}</option>
+                  <option value='settled'>{t('settled')}</option>
+                  <option value='negotiating'>{t('negotiating')}</option>
+                  <option value='bad_debt'>{t('badDebt')}</option>
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
@@ -229,7 +260,7 @@ const LoansPage = () => {
 
             {/* 贷款列表 */}
             <Grid container spacing={4}>
-              {loanData.map((loan) => (
+              {filteredLoans.map((loan) => (
                 <Grid item xs={12} key={loan.id}>
                   <Card variant='outlined'>
                     <CardContent>
@@ -278,10 +309,18 @@ const LoansPage = () => {
                         </Grid>
                         <Grid item xs={12} sm={6} md={2}>
                           <Box display='flex' gap={1}>
-                            <Button size='small' variant='outlined'>
+                            <Button 
+                              size='small' 
+                              variant='outlined'
+                              onClick={() => handleViewLoan(loan)}
+                            >
                               {tCommon('view')}
                             </Button>
-                            <Button size='small' variant='contained'>
+                            <Button 
+                              size='small' 
+                              variant='contained'
+                              onClick={() => handleEditLoan(loan)}
+                            >
                               {tCommon('edit')}
                             </Button>
                           </Box>

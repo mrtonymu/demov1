@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -27,6 +27,7 @@ import { useTranslations } from 'next-intl'
 
 // Utils Imports
 import { useFormatters } from '@/utils/formatters'
+import { apiGet } from '@/utils/api'
 
 // Component Imports
 import CardStatVertical from '@components/card-statistics/Vertical'
@@ -46,6 +47,9 @@ const PaymentsPage = () => {
   // State
   const [paymentData, setPaymentData] = useState<RepaymentTxn[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [dateFilter, setDateFilter] = useState('')
 
   const [stats, setStats] = useState({
     total: 0,
@@ -56,18 +60,12 @@ const PaymentsPage = () => {
     paidAmount: 0
   })
 
-  // Realtime subscription
-  useRealtime('repayment_txn', () => {
-    fetchPayments()
-  })
-
   // Fetch payments data
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     try {
-      const response = await fetch('/api/repayments')
-      if (!response.ok) throw new Error('Failed to fetch payments')
-      
-      const data = await response.json()
+      setLoading(true)
+      const response = await apiGet<RepaymentTxn[]>('/api/repayments')
+      const data = response.data || []
 
       setPaymentData(data)
 
@@ -76,24 +74,95 @@ const PaymentsPage = () => {
       const paid = data.filter((p: RepaymentTxn) => p.status === 'completed').length
       const pending = data.filter((p: RepaymentTxn) => p.status === 'pending').length
       const overdue = data.filter((p: RepaymentTxn) => p.status === 'overdue').length
+
       const totalAmount = data.reduce((sum: number, p: RepaymentTxn) => sum + p.amount, 0)
-      const paidAmount = data
+
+        const paidAmount = data
         .filter((p: RepaymentTxn) => p.status === 'completed')
         .reduce((sum: number, p: RepaymentTxn) => sum + p.amount, 0)
 
       setStats({ total, paid, pending, overdue, totalAmount, paidAmount })
-
-      setLoading(false)
     } catch (error) {
       console.error('Error fetching payments:', error)
+    } finally {
       setLoading(false)
     }
+  }, [])
+
+  // Realtime subscription
+  useRealtime({
+    table: 'repayment_txn',
+    onInsert: fetchPayments,
+    onUpdate: fetchPayments,
+    onDelete: fetchPayments
+  })
+
+  // Filter payments based on search, status and date
+  const filteredPayments = useMemo(() => {
+    return paymentData.filter(payment => {
+      const matchesSearch = !searchQuery || 
+        payment.loan?.client?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        payment.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        payment.loan_id?.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      const matchesStatus = !statusFilter || payment.status === statusFilter
+      
+      const matchesDate = !dateFilter || 
+        (payment.due_date && new Date(payment.due_date).toISOString().split('T')[0] === dateFilter) ||
+        (payment.paid_date && new Date(payment.paid_date).toISOString().split('T')[0] === dateFilter)
+      
+      return matchesSearch && matchesStatus && matchesDate
+    })
+  }, [paymentData, searchQuery, statusFilter, dateFilter])
+
+  // Handle record payment
+  const handleRecordPayment = () => {
+    // TODO: Open record payment dialog
+    console.log('Record payment clicked')
+  }
+
+  // Handle view payment
+  const handleViewPayment = (payment: RepaymentTxn) => {
+    // TODO: Open payment details dialog
+    console.log('View payment:', payment.id)
+  }
+
+  // Handle mark as paid
+  const handleMarkPaid = async (payment: RepaymentTxn) => {
+    try {
+      const response = await fetch('/api/repayments', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: payment.id, 
+          status: 'completed',
+          paid_date: new Date().toISOString()
+        }),
+        cache: 'no-store'
+      })
+
+      const result = await response.json()
+
+      if (result.ok) {
+        fetchPayments()
+      } else {
+        console.error('Failed to mark payment as paid:', result.error)
+      }
+    } catch (error) {
+      console.error('Error marking payment as paid:', error)
+    }
+  }
+
+  // Handle export
+  const handleExport = () => {
+    // TODO: Implement export functionality
+    console.log('Export clicked')
   }
 
   // Initial data fetch
   useEffect(() => {
     fetchPayments()
-  }, [])
+  }, [fetchPayments])
 
 
 
@@ -201,6 +270,7 @@ const PaymentsPage = () => {
               <Button
                 variant='contained'
                 startIcon={<i className='ri-add-line' />}
+                onClick={handleRecordPayment}
               >
                 {t('recordPayment')}
               </Button>
@@ -213,6 +283,8 @@ const PaymentsPage = () => {
                 <TextField
                   fullWidth
                   placeholder={t('searchPayments')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position='start'>
@@ -227,10 +299,12 @@ const PaymentsPage = () => {
                   fullWidth
                   select
                   label={t('status')}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
                   SelectProps={{ native: true }}
                 >
                   <option value=''>{tCommon('all')}</option>
-                  <option value='paid'>{t('paid')}</option>
+                  <option value='completed'>{t('paid')}</option>
                   <option value='pending'>{t('pending')}</option>
                   <option value='overdue'>{t('overdue')}</option>
                   <option value='partial'>{t('partial')}</option>
@@ -241,6 +315,8 @@ const PaymentsPage = () => {
                   fullWidth
                   type='date'
                   label={t('dateRange')}
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
@@ -248,6 +324,7 @@ const PaymentsPage = () => {
                 <Button
                   variant='outlined'
                   startIcon={<i className='ri-download-line' />}
+                  onClick={handleExport}
                   fullWidth
                 >
                   {tCommon('export')}
@@ -272,7 +349,7 @@ const PaymentsPage = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paymentData.map((payment) => (
+                  {filteredPayments.map((payment) => (
                     <TableRow key={payment.id} hover>
                       <TableCell>
                         <Typography variant='body2' color='primary' fontWeight={500}>
@@ -296,7 +373,7 @@ const PaymentsPage = () => {
                       </TableCell>
                       <TableCell>
                         <Typography variant='body2'>
-                          {formatDate(payment.due_date)}
+                          {payment.due_date ? formatDate(payment.due_date) : '-'}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -306,7 +383,7 @@ const PaymentsPage = () => {
                       </TableCell>
                       <TableCell>
                         <Typography variant='body2'>
-                          {getPaymentMethodText(payment.payment_method)}
+                          {getPaymentMethodText(payment.payment_method || '')}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -318,11 +395,20 @@ const PaymentsPage = () => {
                       </TableCell>
                       <TableCell align='center'>
                         <Box display='flex' gap={1} justifyContent='center'>
-                          <Button size='small' variant='outlined'>
+                          <Button 
+                            size='small' 
+                            variant='outlined'
+                            onClick={() => handleViewPayment(payment)}
+                          >
                             {tCommon('view')}
                           </Button>
                           {payment.status === 'pending' || payment.status === 'overdue' ? (
-                            <Button size='small' variant='contained' color='success'>
+                            <Button 
+                              size='small' 
+                              variant='contained' 
+                              color='success'
+                              onClick={() => handleMarkPaid(payment)}
+                            >
                               {t('markPaid')}
                             </Button>
                           ) : null}

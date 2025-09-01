@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
+
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 import { createBrowserSupabaseClient } from '@/lib/supabase'
@@ -13,6 +14,8 @@ interface UseRealtimeOptions {
   onUpdate?: (payload: RealtimePayload) => void
   onDelete?: (payload: RealtimePayload) => void
   enabled?: boolean
+  debounceMs?: number // 防抖延迟时间，默认500ms
+  batchUpdates?: boolean // 是否批量处理更新，默认true
 }
 
 export function useRealtime({
@@ -21,12 +24,20 @@ export function useRealtime({
   onInsert,
   onUpdate,
   onDelete,
-  enabled = true
+  enabled = true,
+  debounceMs = 500,
+  batchUpdates = true
 }: UseRealtimeOptions) {
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
   const supabaseRef = useRef(createBrowserSupabaseClient())
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const pendingUpdatesRef = useRef<{
+    inserts: RealtimePayload[]
+    updates: RealtimePayload[]
+    deletes: RealtimePayload[]
+  }>({ inserts: [], updates: [], deletes: [] })
 
   useEffect(() => {
     if (!enabled) {
@@ -65,17 +76,58 @@ export function useRealtime({
               errors: payload.errors
             }
 
-            // 根据事件类型调用相应的回调
-            switch (payload.eventType) {
-              case 'INSERT':
-                onInsert?.(realtimePayload)
-                break
-              case 'UPDATE':
-                onUpdate?.(realtimePayload)
-                break
-              case 'DELETE':
-                onDelete?.(realtimePayload)
-                break
+            if (batchUpdates) {
+              // 批量处理模式：收集更新并防抖执行
+              switch (payload.eventType) {
+                case 'INSERT':
+                  pendingUpdatesRef.current.inserts.push(realtimePayload)
+                  break
+                case 'UPDATE':
+                  pendingUpdatesRef.current.updates.push(realtimePayload)
+                  break
+                case 'DELETE':
+                  pendingUpdatesRef.current.deletes.push(realtimePayload)
+                  break
+              }
+
+              // 清除之前的定时器
+              if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current)
+              }
+
+              // 设置新的防抖定时器
+              debounceTimerRef.current = setTimeout(() => {
+                const pending = pendingUpdatesRef.current
+
+                // 执行批量回调
+                 if (pending.inserts.length > 0 && onInsert) {
+                   pending.inserts.forEach(onInsert)
+                 }
+
+                 if (pending.updates.length > 0 && onUpdate) {
+                   pending.updates.forEach(onUpdate)
+                 }
+
+                 if (pending.deletes.length > 0 && onDelete) {
+                   pending.deletes.forEach(onDelete)
+                 }
+
+                 // 清空待处理队列
+                 pendingUpdatesRef.current = { inserts: [], updates: [], deletes: [] }
+               }, debounceMs)
+            } else {
+              // 立即处理模式：直接执行回调
+              switch (payload.eventType) {
+                case 'INSERT':
+                  onInsert?.(realtimePayload)
+                  break
+                case 'UPDATE':
+                  onUpdate?.(realtimePayload)
+                  break
+                case 'DELETE':
+                  onDelete?.(realtimePayload)
+                  break
+              }
             }
           } catch (err) {
             console.error('Error processing realtime payload:', err)
@@ -107,30 +159,76 @@ export function useRealtime({
         channelRef.current = null
       }
 
+      // 清理防抖定时器
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+      }
+
+      // 清空待处理队列
+      pendingUpdatesRef.current = { inserts: [], updates: [], deletes: [] }
+
       setIsConnected(false)
     }
-  }, [table, filter, onInsert, onUpdate, onDelete, enabled])
+  }, [table, filter, onInsert, onUpdate, onDelete, enabled, debounceMs, batchUpdates])
 
   // 手动重连
-  const reconnect = () => {
+  const reconnect = useCallback(() => {
     if (channelRef.current) {
       channelRef.current.unsubscribe()
       channelRef.current = null
     }
 
-    setIsConnected(false)
-    setError(null)
+    // 清理防抖定时器和待处理队列
+     if (debounceTimerRef.current) {
+       clearTimeout(debounceTimerRef.current)
+       debounceTimerRef.current = null
+     }
+
+     pendingUpdatesRef.current = { inserts: [], updates: [], deletes: [] }
+
+     setIsConnected(false)
+     setError(null)
 
     // 触发重新订阅
     setTimeout(() => {
       // useEffect 会自动重新运行
     }, 100)
-  }
+  }, [])
+
+  // 立即执行待处理的更新（用于手动刷新）
+  const flushPendingUpdates = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
+    }
+
+    const pending = pendingUpdatesRef.current
+
+     if (pending.inserts.length > 0 && onInsert) {
+       pending.inserts.forEach(onInsert)
+     }
+
+     if (pending.updates.length > 0 && onUpdate) {
+       pending.updates.forEach(onUpdate)
+     }
+
+     if (pending.deletes.length > 0 && onDelete) {
+       pending.deletes.forEach(onDelete)
+     }
+
+     // 清空待处理队列
+     pendingUpdatesRef.current = { inserts: [], updates: [], deletes: [] }
+  }, [onInsert, onUpdate, onDelete])
 
   return {
     isConnected,
     error,
-    reconnect
+    reconnect,
+    flushPendingUpdates,
+    hasPendingUpdates: pendingUpdatesRef.current.inserts.length > 0 || 
+                      pendingUpdatesRef.current.updates.length > 0 || 
+                      pendingUpdatesRef.current.deletes.length > 0
   }
 }
 

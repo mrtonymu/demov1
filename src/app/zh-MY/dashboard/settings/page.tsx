@@ -1,5 +1,8 @@
 'use client'
 
+// React Imports
+import { useState, useEffect } from 'react'
+
 // MUI Imports
 import Grid from '@mui/material/Grid'
 import Card from '@mui/material/Card'
@@ -13,14 +16,110 @@ import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
+import CircularProgress from '@mui/material/CircularProgress'
+import Snackbar from '@mui/material/Snackbar'
 
 // Next Intl Imports
 import { useTranslations } from 'next-intl'
+
+// Utils Imports
+import { apiGet, apiPut, apiPost } from '@/utils/api'
+import type { SystemSettings } from '@/types/cr3dify'
 
 const SettingsPage = () => {
   // Hooks
   const t = useTranslations('settings')
   const tCommon = useTranslations('common')
+  
+  // State
+  const [settings, setSettings] = useState<SystemSettings | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [processing, setProcessing] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  
+  // 获取系统配置
+  const fetchSettings = async () => {
+    try {
+      setLoading(true)
+      const response = await apiGet<SystemSettings>('/api/settings')
+      
+      if (response.ok && response.data) {
+        setSettings(response.data)
+      } else {
+        setMessage({ type: 'error', text: response.error || '获取配置失败' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: '获取配置失败' })
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  // 保存系统配置
+  const handleSave = async () => {
+    if (!settings) return
+    
+    try {
+      setSaving(true)
+      const response = await apiPut('/api/settings', settings)
+      
+      if (response.ok) {
+        setMessage({ type: 'success', text: '配置已保存' })
+      } else {
+        setMessage({ type: 'error', text: response.error || '保存失败' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: '保存失败' })
+    } finally {
+      setSaving(false)
+    }
+  }
+  
+  // 执行系统维护操作
+  const handleSystemAction = async (action: string) => {
+    try {
+      setProcessing(action)
+      const response = await apiPost('/api/settings/actions', { action })
+      
+      if (response.ok) {
+        setMessage({ type: 'success', text: response.message || '操作完成' })
+      } else {
+        setMessage({ type: 'error', text: response.error || '操作失败' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: '操作失败' })
+    } finally {
+      setProcessing(null)
+    }
+  }
+  
+  // 更新配置字段
+  const updateSetting = (field: keyof SystemSettings, value: any) => {
+    if (!settings) return
+    setSettings({ ...settings, [field]: value })
+  }
+  
+  // 初始化
+  useEffect(() => {
+    fetchSettings()
+  }, [])
+  
+  if (loading) {
+    return (
+      <Box display='flex' justifyContent='center' alignItems='center' minHeight='400px'>
+        <CircularProgress />
+      </Box>
+    )
+  }
+  
+  if (!settings) {
+    return (
+      <Alert severity='error'>
+        无法加载系统配置
+      </Alert>
+    )
+  }
 
   return (
     <Grid container spacing={6}>
@@ -41,7 +140,8 @@ const SettingsPage = () => {
                 <TextField
                   fullWidth
                   label={t('companyName')}
-                  defaultValue='CR3DIFY'
+                  value={settings.company_name}
+                  onChange={(e) => updateSetting('company_name', e.target.value)}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -50,28 +150,32 @@ const SettingsPage = () => {
                   label={t('companyAddress')}
                   multiline
                   rows={3}
-                  defaultValue='Kuala Lumpur, Malaysia'
+                  value={settings.company_address}
+                  onChange={(e) => updateSetting('company_address', e.target.value)}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label={t('phoneNumber')}
-                  defaultValue='+60 3-1234 5678'
+                  value={settings.phone_number}
+                  onChange={(e) => updateSetting('phone_number', e.target.value)}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label={t('emailAddress')}
-                  defaultValue='info@cr3dify.com'
+                  value={settings.email_address}
+                  onChange={(e) => updateSetting('email_address', e.target.value)}
                 />
               </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label={t('businessRegistration')}
-                  defaultValue='123456789-A'
+                  value={settings.business_registration}
+                  onChange={(e) => updateSetting('business_registration', e.target.value)}
                 />
               </Grid>
             </Grid>
@@ -90,7 +194,8 @@ const SettingsPage = () => {
                   fullWidth
                   label={t('minimumLoanAmount')}
                   type='number'
-                  defaultValue='5000'
+                  value={settings.minimum_loan_amount}
+                  onChange={(e) => updateSetting('minimum_loan_amount', Number(e.target.value))}
                   InputProps={{
                     startAdornment: 'RM '
                   }}
@@ -101,7 +206,8 @@ const SettingsPage = () => {
                   fullWidth
                   label={t('maximumLoanAmount')}
                   type='number'
-                  defaultValue='500000'
+                  value={settings.maximum_loan_amount}
+                  onChange={(e) => updateSetting('maximum_loan_amount', Number(e.target.value))}
                   InputProps={{
                     startAdornment: 'RM '
                   }}
@@ -112,7 +218,8 @@ const SettingsPage = () => {
                   fullWidth
                   label={t('defaultInterestRate')}
                   type='number'
-                  defaultValue='5.5'
+                  value={settings.default_interest_rate}
+                  onChange={(e) => updateSetting('default_interest_rate', Number(e.target.value))}
                   InputProps={{
                     endAdornment: '%'
                   }}
@@ -123,7 +230,8 @@ const SettingsPage = () => {
                   fullWidth
                   label={t('maximumLoanTerm')}
                   type='number'
-                  defaultValue='60'
+                  value={settings.maximum_loan_term}
+                  onChange={(e) => updateSetting('maximum_loan_term', Number(e.target.value))}
                   InputProps={{
                     endAdornment: t('months')
                   }}
@@ -134,7 +242,8 @@ const SettingsPage = () => {
                   fullWidth
                   label={t('lateFeePercentage')}
                   type='number'
-                  defaultValue='2.0'
+                  value={settings.late_fee_percentage}
+                  onChange={(e) => updateSetting('late_fee_percentage', Number(e.target.value))}
                   InputProps={{
                     endAdornment: '%'
                   }}
@@ -152,27 +261,57 @@ const SettingsPage = () => {
           <CardContent>
             <Box display='flex' flexDirection='column' gap={2}>
               <FormControlLabel
-                control={<Switch defaultChecked />}
+                control={
+                  <Switch 
+                    checked={settings.email_notifications}
+                    onChange={(e) => updateSetting('email_notifications', e.target.checked)}
+                  />
+                }
                 label={t('emailNotifications')}
               />
               <FormControlLabel
-                control={<Switch defaultChecked />}
+                control={
+                  <Switch 
+                    checked={settings.sms_notifications}
+                    onChange={(e) => updateSetting('sms_notifications', e.target.checked)}
+                  />
+                }
                 label={t('smsNotifications')}
               />
               <FormControlLabel
-                control={<Switch defaultChecked />}
+                control={
+                  <Switch 
+                    checked={settings.payment_reminders}
+                    onChange={(e) => updateSetting('payment_reminders', e.target.checked)}
+                  />
+                }
                 label={t('paymentReminders')}
               />
               <FormControlLabel
-                control={<Switch />}
+                control={
+                  <Switch 
+                    checked={settings.overdue_alerts}
+                    onChange={(e) => updateSetting('overdue_alerts', e.target.checked)}
+                  />
+                }
                 label={t('overdueAlerts')}
               />
               <FormControlLabel
-                control={<Switch defaultChecked />}
+                control={
+                  <Switch 
+                    checked={settings.system_updates}
+                    onChange={(e) => updateSetting('system_updates', e.target.checked)}
+                  />
+                }
                 label={t('systemUpdates')}
               />
               <FormControlLabel
-                control={<Switch />}
+                control={
+                  <Switch 
+                    checked={settings.marketing_emails}
+                    onChange={(e) => updateSetting('marketing_emails', e.target.checked)}
+                  />
+                }
                 label={t('marketingEmails')}
               />
             </Box>
@@ -188,7 +327,12 @@ const SettingsPage = () => {
             <Grid container spacing={4}>
               <Grid item xs={12}>
                 <FormControlLabel
-                  control={<Switch defaultChecked />}
+                  control={
+                    <Switch 
+                      checked={settings.two_factor_auth}
+                      onChange={(e) => updateSetting('two_factor_auth', e.target.checked)}
+                    />
+                  }
                   label={t('twoFactorAuth')}
                 />
                 <Typography variant='caption' display='block' color='text.secondary'>
@@ -197,7 +341,12 @@ const SettingsPage = () => {
               </Grid>
               <Grid item xs={12}>
                 <FormControlLabel
-                  control={<Switch defaultChecked />}
+                  control={
+                    <Switch 
+                      checked={settings.session_timeout}
+                      onChange={(e) => updateSetting('session_timeout', e.target.checked)}
+                    />
+                  }
                   label={t('sessionTimeout')}
                 />
                 <Typography variant='caption' display='block' color='text.secondary'>
@@ -209,7 +358,8 @@ const SettingsPage = () => {
                   fullWidth
                   label={t('sessionTimeoutMinutes')}
                   type='number'
-                  defaultValue='30'
+                  value={settings.session_timeout_minutes}
+                  onChange={(e) => updateSetting('session_timeout_minutes', Number(e.target.value))}
                   InputProps={{
                     endAdornment: t('minutes')
                   }}
@@ -234,12 +384,27 @@ const SettingsPage = () => {
               {t('maintenanceWarning')}
             </Alert>
             
+            {/* 写入保护状态提示 */}
+            {!settings.write_enabled && (
+              <Alert severity='warning' sx={{ mb: 4 }}>
+                写入功能已禁用，当前为演示模式
+              </Alert>
+            )}
+            
+            {settings.demo_mode && (
+              <Alert severity='info' sx={{ mb: 4 }}>
+                当前运行在演示模式下
+              </Alert>
+            )}
+            
             <Grid container spacing={4}>
               <Grid item xs={12} sm={6} md={3}>
                 <Button
                   variant='outlined'
-                  startIcon={<i className='ri-database-2-line' />}
+                  startIcon={processing === 'backup_database' ? <CircularProgress size={16} /> : <i className='ri-database-2-line' />}
                   fullWidth
+                  disabled={processing !== null}
+                  onClick={() => handleSystemAction('backup_database')}
                 >
                   {t('backupDatabase')}
                 </Button>
@@ -247,8 +412,10 @@ const SettingsPage = () => {
               <Grid item xs={12} sm={6} md={3}>
                 <Button
                   variant='outlined'
-                  startIcon={<i className='ri-download-line' />}
+                  startIcon={processing === 'export_data' ? <CircularProgress size={16} /> : <i className='ri-download-line' />}
                   fullWidth
+                  disabled={processing !== null}
+                  onClick={() => handleSystemAction('export_data')}
                 >
                   {t('exportData')}
                 </Button>
@@ -256,8 +423,10 @@ const SettingsPage = () => {
               <Grid item xs={12} sm={6} md={3}>
                 <Button
                   variant='outlined'
-                  startIcon={<i className='ri-refresh-line' />}
+                  startIcon={processing === 'clear_cache' ? <CircularProgress size={16} /> : <i className='ri-refresh-line' />}
                   fullWidth
+                  disabled={processing !== null}
+                  onClick={() => handleSystemAction('clear_cache')}
                 >
                   {t('clearCache')}
                 </Button>
@@ -266,8 +435,10 @@ const SettingsPage = () => {
                 <Button
                   variant='outlined'
                   color='error'
-                  startIcon={<i className='ri-delete-bin-line' />}
+                  startIcon={processing === 'reset_system' ? <CircularProgress size={16} /> : <i className='ri-delete-bin-line' />}
                   fullWidth
+                  disabled={processing !== null || !settings.demo_mode}
+                  onClick={() => handleSystemAction('reset_system')}
                 >
                   {t('resetSystem')}
                 </Button>
@@ -277,13 +448,38 @@ const SettingsPage = () => {
             <Divider sx={{ my: 4 }} />
 
             <Box display='flex' justifyContent='flex-end' gap={2}>
-              <Button variant='outlined'>
+              <Button 
+                variant='outlined'
+                onClick={() => fetchSettings()}
+                disabled={saving || processing !== null}
+              >
                 {tCommon('cancel')}
               </Button>
-              <Button variant='contained'>
-                {tCommon('save')}
+              <Button 
+                variant='contained'
+                onClick={handleSave}
+                disabled={saving || processing !== null || !settings.write_enabled}
+                startIcon={saving ? <CircularProgress size={16} /> : undefined}
+              >
+                {saving ? '保存中...' : tCommon('save')}
               </Button>
             </Box>
+            
+            {/* 消息提示 */}
+            <Snackbar
+              open={message !== null}
+              autoHideDuration={6000}
+              onClose={() => setMessage(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+              <Alert 
+                onClose={() => setMessage(null)} 
+                severity={message?.type || 'info'}
+                sx={{ width: '100%' }}
+              >
+                {message?.text}
+              </Alert>
+            </Snackbar>
           </CardContent>
         </Card>
       </Grid>

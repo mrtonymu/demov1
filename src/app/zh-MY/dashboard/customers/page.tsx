@@ -1,12 +1,21 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
+import Alert from '@mui/material/Alert'
+import IconButton from '@mui/material/IconButton'
+import CircularProgress from '@mui/material/CircularProgress'
 
 // Next Intl Imports
 import { useTranslations } from 'next-intl'
@@ -18,6 +27,7 @@ import PageHeader from '@components/common/PageHeader'
 
 // Utils Imports
 import { useFormatters } from '@/utils/formatters'
+import { apiGet, apiPost, apiPut, apiDelete, buildQueryParams } from '@/utils/api'
 
 // Hooks Imports
 import { useRealtime } from '@/hooks/useRealtime'
@@ -36,73 +46,192 @@ const CustomersPage = () => {
   const [statusFilter, setStatusFilter] = useState('')
   const [customerData, setCustomerData] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(10)
+  const [total, setTotal] = useState(0)
+  
+  // Dialog states
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [formData, setFormData] = useState<{
+    full_name: string
+    phone: string
+    ic_number: string
+    email: string
+    address: string
+    status: 'normal' | 'settled' | 'negotiating' | 'bad_debt'
+  }>({
+    full_name: '',
+    phone: '',
+    ic_number: '',
+    email: '',
+    address: '',
+    status: 'normal'
+  })
+  const [submitting, setSubmitting] = useState(false)
 
   const [stats, setStats] = useState({
     total: 0,
-    active: 0,
+    normal: 0,
     newThisMonth: 0,
-    pending: 0
+    badDebt: 0
   })
 
-  // Fetch customers data
-  const fetchCustomers = async () => {
+  // Fetch customers data with pagination and search
+  const fetchCustomers = useCallback(async () => {
     try {
-      const response = await fetch('/api/clients')
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch clients')
+      setLoading(true)
+      setError(null)
+      
+      const queryString = buildQueryParams({
+        page: page.toString(),
+        size: pageSize.toString(),
+        q: searchTerm,
+        status: statusFilter
+      })
+      
+      const result = await apiGet(`/api/clients${queryString}`)
+      
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to fetch clients')
       }
 
-      const data = await response.json()
-
-      setCustomerData(data)
+      setCustomerData(result.data || [])
+      setTotal(result.total || 0)
 
       // Calculate stats
-      const total = data.length
-      const active = data.filter((c: Client) => c.status === 'active').length
-      const pending = data.filter((c: Client) => c.status === 'pending').length
+      const totalCount = result.total || 0
+      const normal = result.data?.filter((c: Client) => c.status === 'normal').length || 0
+      const badDebt = result.data?.filter((c: Client) => c.status === 'bad_debt').length || 0
       const thisMonth = new Date().getMonth()
       const thisYear = new Date().getFullYear()
 
-      const newThisMonth = data.filter((c: Client) => {
+      const newThisMonth = result.data?.filter((c: Client) => {
         const createdDate = new Date(c.created_at)
-
         return createdDate.getMonth() === thisMonth && createdDate.getFullYear() === thisYear
-      }).length
+      }).length || 0
 
-      setStats({ total, active, newThisMonth, pending })
-      setLoading(false)
+      setStats({ total: totalCount, normal, newThisMonth, badDebt })
     } catch (error) {
       console.error('Error fetching customers:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch customers')
+    } finally {
       setLoading(false)
-
-      return
     }
-  }
+  }, [page, pageSize, searchTerm, statusFilter])
 
   // Setup realtime subscription
-  useRealtime({
-    tables: ['clients'],
-    onUpdate: () => {
-      fetchCustomers()
-    }
+  useRealtime('clients', () => {
+    fetchCustomers()
   })
 
   // Initial data fetch
   useEffect(() => {
     fetchCustomers()
-  }, [])
+  }, [fetchCustomers])
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (!formData.full_name || !formData.phone || !formData.ic_number) {
+      setError('Please fill in all required fields')
+
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      setError(null)
+
+      const body = editingClient 
+        ? { id: editingClient.id, ...formData }
+        : formData
+
+      const result = editingClient 
+        ? await apiPut('/api/clients', body)
+        : await apiPost('/api/clients', body)
+
+      if (!result.ok) {
+        throw new Error(result.error || 'Operation failed')
+      }
+
+      setDialogOpen(false)
+      setEditingClient(null)
+      setFormData({
+        full_name: '',
+        phone: '',
+        ic_number: '',
+        email: '',
+        address: '',
+        status: 'normal'
+      })
+      fetchCustomers()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Operation failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Handle delete
+  const handleDelete = async (client: Client) => {
+    if (!confirm('Are you sure you want to delete this client?')) {
+      return
+    }
+
+    try {
+      const result = await apiDelete('/api/clients', { id: client.id })
+
+      if (!result.ok) {
+        throw new Error(result.error || 'Delete failed')
+      }
+
+      fetchCustomers()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Delete failed')
+    }
+  }
+
+  // Handle edit
+  const handleEdit = (client: Client) => {
+    setEditingClient(client)
+    setFormData({
+      full_name: client.full_name || '',
+      phone: client.phone || '',
+      ic_number: client.ic_number || '',
+      email: client.email || '',
+      address: client.address || '',
+      status: client.status
+    })
+    setDialogOpen(true)
+  }
+
+  // Handle status change
+  const handleStatusChange = async (client: Client, newStatus: 'normal' | 'settled' | 'negotiating' | 'bad_debt') => {
+    try {
+      const result = await apiPut('/api/clients', { id: client.id, status: newStatus })
+
+      if (!result.ok) {
+        throw new Error(result.error || 'Status update failed')
+      }
+
+      fetchCustomers()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Status update failed')
+    }
+  }
 
   // 状态渲染函数
   const renderStatus = (status: string) => {
     const statusConfig = {
-      active: { label: t('active'), color: 'success' as const },
-      pending: { label: t('pending'), color: 'warning' as const },
-      inactive: { label: t('inactive'), color: 'default' as const }
+      normal: { label: t('normal'), color: 'success' as const },
+      settled: { label: t('settled'), color: 'info' as const },
+      negotiating: { label: t('negotiating'), color: 'warning' as const },
+      bad_debt: { label: t('badDebt'), color: 'error' as const }
     }
 
-    const config = statusConfig[status as keyof typeof statusConfig]
-
+    const config = statusConfig[status as keyof typeof statusConfig] || 
+      { label: status, color: 'default' as const }
 
     return (
       <Chip
@@ -148,14 +277,18 @@ const CustomersPage = () => {
       label: tCommon('actions'),
       minWidth: 120,
       align: 'center' as const,
-      format: () => (
-        <Button
-          variant='outlined'
-          size='small'
-          startIcon={<i className='ri-edit-line' />}
-        >
-          {tCommon('edit')}
-        </Button>
+      format: (value: any, row: Client) => (
+        <div className='flex gap-2'>
+          <IconButton size='small' onClick={() => handleEdit(row)}>
+            <i className='ri-edit-line' />
+          </IconButton>
+          <IconButton size='small' onClick={() => handleDelete(row)} color='error'>
+            <i className='ri-delete-bin-line' />
+          </IconButton>
+          <IconButton size='small' onClick={() => handleStatusChange(row, 'negotiating')}>
+            <i className='ri-message-circle-line' />
+          </IconButton>
+        </div>
       )
     }
   ]
@@ -212,7 +345,7 @@ const CustomersPage = () => {
           <Button
             variant='contained'
             startIcon={<i className='ri-add-line' />}
-            onClick={() => console.log('添加客户')}
+            onClick={() => setDialogOpen(true)}
           >
             {t('addCustomer')}
           </Button>
@@ -234,8 +367,8 @@ const CustomersPage = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <CardStatVertical
-            title={t('activeCustomers')}
-            stats={loading ? '...' : stats.active.toString()}
+            title={t('normalCustomers')}
+            stats={loading ? '...' : stats.normal.toString()}
             avatarIcon='ri-user-line'
             avatarColor='success'
             subtitle={t('currentlyActive')}
@@ -256,8 +389,8 @@ const CustomersPage = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <CardStatVertical
-            title={t('pendingApproval')}
-            stats={loading ? '...' : stats.pending.toString()}
+            title={t('badDebtCustomers')}
+            stats={loading ? '...' : stats.badDebt.toString()}
             avatarIcon='ri-time-line'
             avatarColor='warning'
             subtitle={t('awaitingApproval')}
@@ -278,6 +411,110 @@ const CustomersPage = () => {
           searchPlaceholder={t('searchCustomers')}
           emptyMessage={t('noCustomersFound')}
         />
+        
+        {/* Add/Edit Client Dialog */}
+         <Dialog open={dialogOpen} onClose={() => {
+           setDialogOpen(false)
+           setEditingClient(null)
+           setError(null)
+           setFormData({
+             full_name: '',
+             phone: '',
+             ic_number: '',
+             email: '',
+             address: '',
+             status: 'normal'
+           })
+         }} maxWidth='sm' fullWidth>
+          <DialogTitle>
+            {editingClient ? t('editClient') : t('addClient')}
+          </DialogTitle>
+          <DialogContent>
+            {error && (
+              <Alert severity='error' sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+            <TextField
+              fullWidth
+              label={t('fullName')}
+              value={formData.full_name}
+              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              margin='normal'
+              required
+            />
+            <TextField
+              fullWidth
+              label={t('phone')}
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              margin='normal'
+              required
+            />
+            <TextField
+              fullWidth
+              label={t('icNumber')}
+              value={formData.ic_number}
+              onChange={(e) => setFormData({ ...formData, ic_number: e.target.value })}
+              margin='normal'
+              required
+            />
+            <TextField
+              fullWidth
+              label={t('email')}
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              margin='normal'
+              type='email'
+            />
+            <TextField
+              fullWidth
+              label={t('address')}
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              margin='normal'
+              multiline
+              rows={3}
+            />
+            <TextField
+              fullWidth
+              select
+              label={t('status')}
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'normal' | 'settled' | 'negotiating' | 'bad_debt' })}
+              margin='normal'
+            >
+              <MenuItem value='normal'>{t('normal')}</MenuItem>
+              <MenuItem value='settled'>{t('settled')}</MenuItem>
+              <MenuItem value='negotiating'>{t('negotiating')}</MenuItem>
+              <MenuItem value='bad_debt'>{t('badDebt')}</MenuItem>
+            </TextField>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => {
+               setDialogOpen(false)
+               setEditingClient(null)
+               setError(null)
+               setFormData({
+                 full_name: '',
+                 phone: '',
+                 ic_number: '',
+                 email: '',
+                 address: '',
+                 status: 'normal'
+               })
+             }}>
+               {tCommon('cancel')}
+             </Button>
+            <Button 
+              onClick={handleSubmit} 
+              variant='contained' 
+              disabled={submitting}
+            >
+              {submitting ? <CircularProgress size={20} /> : (editingClient ? tCommon('update') : tCommon('create'))}
+            </Button>
+          </DialogActions>
+        </Dialog>
         </Grid>
       </Grid>
     </>

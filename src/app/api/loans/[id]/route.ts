@@ -22,21 +22,32 @@ interface RouteParams {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     // 检查写入权限
-    const writeGuard = guardWrite()
+    const writeGuard = await guardWrite()
     if (writeGuard) return writeGuard
-    
+
     const cookieStore = await cookies()
     const supabase = createServerSupabaseClient(cookieStore)
-    
+
+    // 获取当前用户
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const { id } = params
     const body = await request.json()
     const { status, principal_balance, interest_balance } = body
     
-    // 检查贷款是否存在
+    // 检查贷款是否存在（在当前租户下）
     const { data: existingLoan } = await supabase
       .from('loans')
       .select('id, status')
       .eq('id', id)
+      .eq('tenant_id', user.id)
       .single()
     
     if (!existingLoan) {
@@ -52,6 +63,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
     
     if (status !== undefined) {
+
       // 验证状态值
       const validStatuses = ['normal', 'settled', 'negotiating', 'bad_debt']
       if (!validStatuses.includes(status)) {
@@ -62,7 +74,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
       updateData.status = status
     }
-    
+
     if (principal_balance !== undefined) {
       if (principal_balance < 0) {
         return NextResponse.json(
@@ -72,7 +84,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
       updateData.principal_balance = principal_balance
     }
-    
+
     if (interest_balance !== undefined) {
       if (interest_balance < 0) {
         return NextResponse.json(
@@ -82,12 +94,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
       updateData.interest_balance = interest_balance
     }
-    
-    // 更新贷款信息
+
+    // 更新贷款信息（添加租户隔离）
     const { data, error } = await supabase
       .from('loans')
       .update(updateData)
       .eq('id', id)
+      .eq('tenant_id', user.id)
       .select(`
         *,
         client:clients(

@@ -1,7 +1,6 @@
 'use client'
 
-// React Imports
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 
 // MUI Imports
 import Grid from '@mui/material/Grid'
@@ -23,15 +22,22 @@ import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import Divider from '@mui/material/Divider'
+import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
 
 // Next Intl Imports
 import { useTranslations } from 'next-intl'
 
-// Utils Imports
+// Utils
 import { useFormatters } from '@/utils/formatters'
+// API utilities (currently using mock data)
 
-// Component Imports
+// Types
+import type { LoanApplication } from '@/types/cr3dify'
+
+// Components
 import CardStatVertical from '@components/card-statistics/Vertical'
+import { useLoansRealtime } from '@/hooks/useRealtime'
 
 const ApprovalsPage = () => {
   // Hooks
@@ -40,68 +46,94 @@ const ApprovalsPage = () => {
   const { formatCurrency, formatDate } = useFormatters()
 
   // State
-  const [selectedApplication, setSelectedApplication] = useState<any>(null)
+  const [applications, setApplications] = useState<LoanApplication[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedApplication, setSelectedApplication] = useState<LoanApplication | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [assignedFilter, setAssignedFilter] = useState('')
+  const [processing, setProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // 模拟申请数据
-  const applicationData = [
-    {
-      id: 'APP001',
-      customerName: '张三',
-      customerEmail: 'zhangsan@example.com',
-      loanAmount: 150000,
-      loanPurpose: '房屋装修',
-      interestRate: 5.5,
-      term: 24,
-      status: 'pending_review',
-      submittedAt: '2024-03-15T09:30:00',
-      currentStep: 1,
-      assignedTo: '李经理',
-      documents: ['身份证', '收入证明', '银行流水']
-    },
-    {
-      id: 'APP002',
-      customerName: '李四',
-      customerEmail: 'lisi@example.com',
-      loanAmount: 80000,
-      loanPurpose: '创业资金',
-      interestRate: 6.0,
-      term: 12,
-      status: 'pending_approval',
-      submittedAt: '2024-03-14T14:20:00',
-      currentStep: 2,
-      assignedTo: '王专员',
-      documents: ['营业执照', '财务报表', '担保文件']
-    },
-    {
-      id: 'APP003',
-      customerName: '王五',
-      customerEmail: 'wangwu@example.com',
-      loanAmount: 200000,
-      loanPurpose: '设备采购',
-      interestRate: 5.0,
-      term: 36,
-      status: 'approved',
-      submittedAt: '2024-03-13T11:15:00',
-      currentStep: 4,
-      assignedTo: '张主管',
-      documents: ['采购合同', '设备清单', '公司资质']
-    },
-    {
-      id: 'APP004',
-      customerName: '赵六',
-      customerEmail: 'zhaoliu@example.com',
-      loanAmount: 50000,
-      loanPurpose: '教育支出',
-      interestRate: 4.5,
-      term: 18,
-      status: 'rejected',
-      submittedAt: '2024-03-12T16:45:00',
-      currentStep: 2,
-      assignedTo: '李经理',
-      documents: ['学费通知', '收入证明']
+  // Fetch applications data
+  const fetchApplications = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // 模拟API调用
+      const mockData: LoanApplication[] = [
+        {
+           id: 'APP001',
+           client_id: 'C001',
+           client_name: '张三',
+           client_email: 'zhang@example.com',
+           loan_amount: 50000,
+           loan_purpose: '个人消费',
+           interest_rate: 12.5,
+           term: 12,
+           status: 'pending_review',
+           submitted_at: '2024-01-15T10:00:00Z',
+           current_step: 1,
+           assigned_to: '审核员A',
+           documents: ['身份证', '收入证明', '银行流水'],
+           created_at: '2024-01-15T10:00:00Z'
+         },
+         {
+           id: 'APP002',
+           client_id: 'C002',
+           client_name: '李四',
+           client_email: 'li@example.com',
+           loan_amount: 30000,
+           loan_purpose: '生意周转',
+           interest_rate: 15.0,
+           term: 6,
+           status: 'pending_approval',
+           submitted_at: '2024-01-16T14:30:00Z',
+           current_step: 2,
+           assigned_to: '审核员B',
+           documents: ['身份证', '营业执照'],
+           created_at: '2024-01-16T14:30:00Z'
+         },
+         {
+           id: 'APP003',
+           client_id: 'C003',
+           client_name: '王五',
+           client_email: 'wang@example.com',
+           loan_amount: 75000,
+           loan_purpose: '房屋装修',
+           interest_rate: 10.0,
+           term: 24,
+           status: 'approved',
+           submitted_at: '2024-01-14T09:15:00Z',
+           current_step: 4,
+           assigned_to: '审核员C',
+           documents: ['身份证', '房产证', '装修合同'],
+           created_at: '2024-01-14T09:15:00Z'
+         }
+      ]
+      
+      setApplications(mockData)
+    } catch (error) {
+      console.error('Error fetching applications:', error)
+      setError('获取数据失败')
+    } finally {
+      setLoading(false)
     }
-  ]
+  }, [])
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchApplications()
+  }, [])
+
+  // Realtime updates
+  useLoansRealtime({
+    onUpdate: fetchApplications
+  })
+
+
 
   const approvalSteps = [
     t('documentReview'),
@@ -145,6 +177,59 @@ const ApprovalsPage = () => {
     }
   }
 
+  // 计算统计数据
+  const computedStats = useMemo(() => {
+    const total = applications.length
+    const pendingReview = applications.filter(app => app.status === 'pending_review').length
+    const approved = applications.filter(app => app.status === 'approved').length
+    const avgProcessingTime = 2.5 // 模拟平均处理时间（天）
+    
+    return { total, pendingReview, approved, avgProcessingTime }
+  }, [applications])
+
+  // 筛选申请数据
+  const filteredApplications = useMemo(() => {
+    return applications.filter(app => {
+       const matchesSearch = !searchQuery || 
+         app.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+         app.id.toLowerCase().includes(searchQuery.toLowerCase())
+       
+       const matchesStatus = statusFilter === 'all' || app.status === statusFilter
+       const matchesAssigned = assignedFilter === 'all' || app.assigned_to === assignedFilter
+       
+       return matchesSearch && matchesStatus && matchesAssigned
+     })
+  }, [applications, searchQuery, statusFilter, assignedFilter])
+
+  // 处理审批操作
+  const handleApprovalAction = async (applicationId: string, action: 'approve' | 'reject') => {
+    try {
+      setProcessing(true)
+      setError(null)
+      
+      const newStatus = action === 'approve' ? 'approved' : 'rejected'
+      
+      // 模拟API调用
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // 更新本地状态
+       setApplications(prev => prev.map(app => 
+         app.id === applicationId 
+           ? { ...app, status: newStatus, current_step: action === 'approve' ? 4 : 0 }
+           : app
+       ))
+      
+      setDialogOpen(false)
+      setSelectedApplication(null)
+    } catch (error) {
+      console.error('Approval action error:', error)
+      setError('操作失败')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // 处理查看申请
   const handleViewApplication = (application: any) => {
     setSelectedApplication(application)
     setDialogOpen(true)
@@ -161,7 +246,7 @@ const ApprovalsPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('totalApplications')}
-          stats='156'
+          stats={computedStats.total.toString()}
           avatarIcon='ri-file-list-3-line'
           avatarColor='primary'
           subtitle={t('allApplications')}
@@ -172,7 +257,7 @@ const ApprovalsPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('pendingReview')}
-          stats='23'
+          stats={computedStats.pendingReview.toString()}
           avatarIcon='ri-time-line'
           avatarColor='warning'
           subtitle={t('awaitingReview')}
@@ -183,7 +268,7 @@ const ApprovalsPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('approvedToday')}
-          stats='8'
+          stats={computedStats.approved.toString()}
           avatarIcon='ri-check-line'
           avatarColor='success'
           subtitle={t('todayApprovals')}
@@ -194,7 +279,7 @@ const ApprovalsPage = () => {
       <Grid item xs={12} sm={6} md={3}>
         <CardStatVertical
           title={t('averageProcessingTime')}
-          stats='3.2'
+          stats={computedStats.avgProcessingTime.toString()}
           avatarIcon='ri-timer-line'
           avatarColor='info'
           subtitle={t('days')}
@@ -224,6 +309,8 @@ const ApprovalsPage = () => {
                 <TextField
                   fullWidth
                   placeholder={t('searchApplications')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position='start'>
@@ -238,6 +325,8 @@ const ApprovalsPage = () => {
                   fullWidth
                   select
                   label={t('status')}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
                   SelectProps={{ native: true }}
                 >
                   <option value=''>{tCommon('all')}</option>
@@ -252,9 +341,12 @@ const ApprovalsPage = () => {
                   fullWidth
                   select
                   label={t('assignedTo')}
+                  value={assignedFilter}
+                  onChange={(e) => setAssignedFilter(e.target.value)}
                   SelectProps={{ native: true }}
                 >
                   <option value=''>{tCommon('all')}</option>
+                  <option value='系统管理员'>系统管理员</option>
                   <option value='李经理'>李经理</option>
                   <option value='王专员'>王专员</option>
                   <option value='张主管'>张主管</option>
@@ -262,9 +354,23 @@ const ApprovalsPage = () => {
               </Grid>
             </Grid>
 
+            {/* 错误提示 */}
+            {error && (
+              <Alert severity='error' sx={{ mb: 4 }}>
+                {error}
+              </Alert>
+            )}
+
+            {/* 加载状态 */}
+            {loading && (
+              <Box display='flex' justifyContent='center' sx={{ mb: 4 }}>
+                <CircularProgress />
+              </Box>
+            )}
+
             {/* 申请列表 */}
             <Grid container spacing={4}>
-              {applicationData.map((application) => (
+              {filteredApplications.map((application) => (
                 <Grid item xs={12} key={application.id}>
                   <Card variant='outlined'>
                     <CardContent>
@@ -328,7 +434,11 @@ const ApprovalsPage = () => {
                               {tCommon('view')}
                             </Button>
                             {(application.status === 'pending_review' || application.status === 'pending_approval') && (
-                              <Button size='small' variant='contained'>
+                              <Button 
+                                size='small' 
+                                variant='contained'
+                                disabled={processing}
+                              >
                                 {t('process')}
                               </Button>
                             )}
@@ -436,11 +546,21 @@ const ApprovalsPage = () => {
               </Button>
               {(selectedApplication.status === 'pending_review' || selectedApplication.status === 'pending_approval') && (
                 <>
-                  <Button color='error' variant='outlined'>
-                    {t('reject')}
+                  <Button 
+                    color='error' 
+                    variant='outlined'
+                    disabled={processing}
+                    onClick={() => handleApprovalAction(selectedApplication.id, 'reject')}
+                  >
+                    {processing ? <CircularProgress size={20} /> : t('reject')}
                   </Button>
-                  <Button color='success' variant='contained'>
-                    {t('approve')}
+                  <Button 
+                    color='success' 
+                    variant='contained'
+                    disabled={processing}
+                    onClick={() => handleApprovalAction(selectedApplication.id, 'approve')}
+                  >
+                    {processing ? <CircularProgress size={20} /> : t('approve')}
                   </Button>
                 </>
               )}

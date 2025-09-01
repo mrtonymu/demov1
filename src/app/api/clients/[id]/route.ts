@@ -23,10 +23,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // 检查写入权限
     const writeGuard = await guardWrite()
     if (writeGuard) return writeGuard
-    
+
     const cookieStore = await cookies()
     const supabase = createServerSupabaseClient(cookieStore)
     
+    // 获取当前用户
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const { id } = params
     const body = await request.json()
     const { full_name, ic_number, phone, email, address, status } = body
@@ -39,11 +49,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       )
     }
     
-    // 检查客户是否存在
+    // 检查客户是否存在（在当前租户下）
     const { data: existingClient } = await supabase
       .from('clients')
       .select('id')
       .eq('id', id)
+      .eq('tenant_id', user.id)
       .single()
     
     if (!existingClient) {
@@ -53,11 +64,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       )
     }
     
-    // 检查身份证号是否与其他客户冲突
+    // 检查身份证号是否与其他客户冲突（在当前租户下）
     const { data: conflictClient } = await supabase
       .from('clients')
       .select('id')
       .eq('ic_number', ic_number)
+      .eq('tenant_id', user.id)
       .neq('id', id)
       .single()
     
@@ -68,7 +80,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       )
     }
     
-    // 更新客户信息
+    // 更新客户信息（确保租户隔离）
     const { data, error } = await supabase
       .from('clients')
       .update({
@@ -81,6 +93,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
+      .eq('tenant_id', user.id)
       .select()
       .single()
     
@@ -112,17 +125,28 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // 检查写入权限
     const writeGuard = await guardWrite()
     if (writeGuard) return writeGuard
-    
+
     const cookieStore = await cookies()
     const supabase = createServerSupabaseClient(cookieStore)
     
+    // 获取当前用户
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const { id } = params
     
-    // 检查客户是否存在
+    // 检查客户是否存在（在当前租户下）
     const { data: existingClient } = await supabase
       .from('clients')
       .select('id')
       .eq('id', id)
+      .eq('tenant_id', user.id)
       .single()
     
     if (!existingClient) {
@@ -132,11 +156,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
     
-    // 检查是否有关联的贷款记录
+    // 检查是否有关联的贷款记录（在当前租户下）
     const { data: loans } = await supabase
       .from('loans')
       .select('id')
       .eq('client_id', id)
+      .eq('tenant_id', user.id)
       .limit(1)
     
     if (loans && loans.length > 0) {
@@ -146,11 +171,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
     
-    // 删除客户
+    // 删除客户（确保租户隔离）
     const { error } = await supabase
       .from('clients')
       .delete()
       .eq('id', id)
+      .eq('tenant_id', user.id)
     
     if (error) {
       console.error('删除客户失败:', error)
