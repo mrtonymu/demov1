@@ -47,10 +47,10 @@ const CustomersPage = () => {
   const [customerData, setCustomerData] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [page, setPage] = useState(1)
+  const [page] = useState(1)
   const [pageSize] = useState(10)
-  const [total, setTotal] = useState(0)
-  
+  const [, setTotal] = useState(0)
+
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
@@ -60,22 +60,23 @@ const CustomersPage = () => {
     ic_number: string
     email: string
     address: string
-    status: 'normal' | 'settled' | 'negotiating' | 'bad_debt'
+    status: 'active' | 'inactive' | 'suspended'
   }>({
     full_name: '',
     phone: '',
     ic_number: '',
     email: '',
     address: '',
-    status: 'normal'
+    status: 'active'
   })
+
   const [submitting, setSubmitting] = useState(false)
 
   const [stats, setStats] = useState({
     total: 0,
-    normal: 0,
+    active: 0,
     newThisMonth: 0,
-    badDebt: 0
+    suspended: 0
   })
 
   // Fetch customers data with pagination and search
@@ -86,11 +87,11 @@ const CustomersPage = () => {
       
       const queryString = buildQueryParams({
         page: page.toString(),
-        size: pageSize.toString(),
-        q: searchTerm,
+        pageSize: pageSize.toString(),
+        query: searchTerm,
         status: statusFilter
       })
-      
+
       const result = await apiGet(`/api/clients${queryString}`)
       
       if (!result.ok) {
@@ -102,8 +103,8 @@ const CustomersPage = () => {
 
       // Calculate stats
       const totalCount = result.total || 0
-      const normal = result.data?.filter((c: Client) => c.status === 'normal').length || 0
-      const badDebt = result.data?.filter((c: Client) => c.status === 'bad_debt').length || 0
+      const active = result.data?.filter((c: Client) => c.status === 'active').length || 0
+      const suspended = result.data?.filter((c: Client) => c.status === 'suspended').length || 0
       const thisMonth = new Date().getMonth()
       const thisYear = new Date().getFullYear()
 
@@ -112,18 +113,19 @@ const CustomersPage = () => {
         return createdDate.getMonth() === thisMonth && createdDate.getFullYear() === thisYear
       }).length || 0
 
-      setStats({ total: totalCount, normal, newThisMonth, badDebt })
-    } catch (error) {
-      console.error('Error fetching customers:', error)
-      setError(error instanceof Error ? error.message : 'Failed to fetch customers')
-    } finally {
-      setLoading(false)
-    }
-  }, [page, pageSize, searchTerm, statusFilter])
+      setStats({ total: totalCount, active, newThisMonth, suspended })
+      } catch (error) {
+        console.error('Error fetching customers:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch customers')
+      } finally {
+        setLoading(false)
+      }
+    }, [searchTerm, statusFilter])
 
   // Setup realtime subscription
-  useRealtime('clients', () => {
-    fetchCustomers()
+  useRealtime({
+    table: 'clients',
+    onUpdate: () => fetchCustomers()
   })
 
   // Initial data fetch
@@ -143,13 +145,9 @@ const CustomersPage = () => {
       setSubmitting(true)
       setError(null)
 
-      const body = editingClient 
-        ? { id: editingClient.id, ...formData }
-        : formData
-
       const result = editingClient 
-        ? await apiPut('/api/clients', body)
-        : await apiPost('/api/clients', body)
+        ? await apiPut(`/api/clients/${editingClient.id}`, formData)
+        : await apiPost('/api/clients', formData)
 
       if (!result.ok) {
         throw new Error(result.error || 'Operation failed')
@@ -163,7 +161,7 @@ const CustomersPage = () => {
         ic_number: '',
         email: '',
         address: '',
-        status: 'normal'
+        status: 'active'
       })
       fetchCustomers()
     } catch (error) {
@@ -180,7 +178,7 @@ const CustomersPage = () => {
     }
 
     try {
-      const result = await apiDelete('/api/clients', { id: client.id })
+      const result = await apiDelete(`/api/clients/${client.id}`)
 
       if (!result.ok) {
         throw new Error(result.error || 'Delete failed')
@@ -207,9 +205,9 @@ const CustomersPage = () => {
   }
 
   // Handle status change
-  const handleStatusChange = async (client: Client, newStatus: 'normal' | 'settled' | 'negotiating' | 'bad_debt') => {
+  const handleStatusChange = async (client: Client, newStatus: 'active' | 'inactive' | 'suspended') => {
     try {
-      const result = await apiPut('/api/clients', { id: client.id, status: newStatus })
+      const result = await apiPut(`/api/clients/${client.id}`, { status: newStatus })
 
       if (!result.ok) {
         throw new Error(result.error || 'Status update failed')
@@ -224,10 +222,9 @@ const CustomersPage = () => {
   // 状态渲染函数
   const renderStatus = (status: string) => {
     const statusConfig = {
-      normal: { label: t('normal'), color: 'success' as const },
-      settled: { label: t('settled'), color: 'info' as const },
-      negotiating: { label: t('negotiating'), color: 'warning' as const },
-      bad_debt: { label: t('badDebt'), color: 'error' as const }
+      active: { label: t('active'), color: 'success' as const },
+      inactive: { label: t('inactive'), color: 'default' as const },
+      suspended: { label: t('suspended'), color: 'error' as const }
     }
 
     const config = statusConfig[status as keyof typeof statusConfig] || 
@@ -244,7 +241,13 @@ const CustomersPage = () => {
   }
 
   // 表格列配置
-  const columns = [
+  const columns: Array<{
+    id: string
+    label: string
+    minWidth?: number
+    align?: 'left' | 'center' | 'right'
+    format?: (value: any, row?: Client) => React.ReactNode
+  }> = [
     {
       id: 'full_name',
       label: t('name'),
@@ -276,8 +279,8 @@ const CustomersPage = () => {
       id: 'actions',
       label: tCommon('actions'),
       minWidth: 120,
-      align: 'center' as const,
-      format: (value: any, row: Client) => (
+      align: 'center',
+      format: (value: any, row?: Client) => row ? (
         <div className='flex gap-2'>
           <IconButton size='small' onClick={() => handleEdit(row)}>
             <i className='ri-edit-line' />
@@ -285,11 +288,11 @@ const CustomersPage = () => {
           <IconButton size='small' onClick={() => handleDelete(row)} color='error'>
             <i className='ri-delete-bin-line' />
           </IconButton>
-          <IconButton size='small' onClick={() => handleStatusChange(row, 'negotiating')}>
+          <IconButton size='small' onClick={() => handleStatusChange(row, 'suspended')}>
             <i className='ri-message-circle-line' />
           </IconButton>
         </div>
-      )
+      ) : null
     }
   ]
 
@@ -303,8 +306,8 @@ const CustomersPage = () => {
       onChange: setStatusFilter,
       options: [
         { value: 'active', label: t('active') },
-        { value: 'pending', label: t('pending') },
-        { value: 'inactive', label: t('inactive') }
+        { value: 'inactive', label: t('inactive') },
+        { value: 'suspended', label: t('suspended') }
       ]
     }
   ]
@@ -368,7 +371,7 @@ const CustomersPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <CardStatVertical
             title={t('normalCustomers')}
-            stats={loading ? '...' : stats.normal.toString()}
+            stats={loading ? '...' : stats.active.toString()}
             avatarIcon='ri-user-line'
             avatarColor='success'
             subtitle={t('currentlyActive')}
@@ -390,7 +393,7 @@ const CustomersPage = () => {
         <Grid item xs={12} sm={6} md={3}>
           <CardStatVertical
             title={t('badDebtCustomers')}
-            stats={loading ? '...' : stats.badDebt.toString()}
+            stats={loading ? '...' : stats.suspended.toString()}
             avatarIcon='ri-time-line'
             avatarColor='warning'
             subtitle={t('awaitingApproval')}
@@ -402,15 +405,16 @@ const CustomersPage = () => {
         {/* 客户数据表格 */}
         <Grid item xs={12}>
           <DataTable
-          title={t('customerList')}
-          data={filteredData}
-          columns={columns}
-          onSearch={handleSearch}
-          filters={filters}
-          onExport={handleExport}
-          searchPlaceholder={t('searchCustomers')}
-          emptyMessage={t('noCustomersFound')}
-        />
+            title={t('customerList')}
+            data={filteredData}
+            columns={columns}
+            onSearch={handleSearch}
+            filters={filters}
+            onExport={handleExport}
+            searchPlaceholder={t('searchCustomers')}
+            emptyMessage={t('noCustomersFound')}
+            loading={loading}
+          />
         
         {/* Add/Edit Client Dialog */}
          <Dialog open={dialogOpen} onClose={() => {
@@ -423,7 +427,7 @@ const CustomersPage = () => {
              ic_number: '',
              email: '',
              address: '',
-             status: 'normal'
+             status: 'active'
            })
          }} maxWidth='sm' fullWidth>
           <DialogTitle>
@@ -481,13 +485,12 @@ const CustomersPage = () => {
               select
               label={t('status')}
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'normal' | 'settled' | 'negotiating' | 'bad_debt' })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'suspended' })}
               margin='normal'
             >
-              <MenuItem value='normal'>{t('normal')}</MenuItem>
-              <MenuItem value='settled'>{t('settled')}</MenuItem>
-              <MenuItem value='negotiating'>{t('negotiating')}</MenuItem>
-              <MenuItem value='bad_debt'>{t('badDebt')}</MenuItem>
+              <MenuItem value='active'>{t('active')}</MenuItem>
+              <MenuItem value='inactive'>{t('inactive')}</MenuItem>
+              <MenuItem value='suspended'>{t('suspended')}</MenuItem>
             </TextField>
           </DialogContent>
           <DialogActions>
@@ -501,7 +504,7 @@ const CustomersPage = () => {
                  ic_number: '',
                  email: '',
                  address: '',
-                 status: 'normal'
+                 status: 'active'
                })
              }}>
                {tCommon('cancel')}

@@ -22,6 +22,7 @@ import TablePagination from '@mui/material/TablePagination'
 import Paper from '@mui/material/Paper'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import MenuItem from '@mui/material/MenuItem'
 
 // Next Intl Imports
 import { useTranslations } from 'next-intl'
@@ -152,13 +153,12 @@ const DataTable = ({
                       label={filter.label}
                       value={filterValues[filter.id] || ''}
                       onChange={(e) => handleFilter(filter.id, e.target.value)}
-                      SelectProps={{ native: true }}
                     >
-                      <option value=''>{tCommon('all')}</option>
+                      <MenuItem value=''>{tCommon('all')}</MenuItem>
                       {filter.options?.map((option) => (
-                        <option key={option.value} value={option.value}>
+                        <MenuItem key={option.value} value={option.value}>
                           {option.label}
-                        </option>
+                        </MenuItem>
                       ))}
                     </TextField>
                   ) : filter.type === 'date' ? (

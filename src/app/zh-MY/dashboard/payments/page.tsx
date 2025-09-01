@@ -349,8 +349,25 @@ const PaymentsPage = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredPayments.map((payment) => (
-                    <TableRow key={payment.id} hover>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={9} align="center">
+                        <Typography variant="body2" color="text.secondary">
+                          {t('loading')}...
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredPayments.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} align="center">
+                        <Typography variant="body2" color="text.secondary">
+                          {t('noPaymentsFound')}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredPayments.map((payment) => (
+                      <TableRow key={payment.id} hover>
                       <TableCell>
                         <Typography variant='body2' color='primary' fontWeight={500}>
                           {payment.id}
@@ -414,8 +431,9 @@ const PaymentsPage = () => {
                           ) : null}
                         </Box>
                       </TableCell>
-                    </TableRow>
-                  ))}
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>

@@ -12,7 +12,10 @@
     "lint:fix": "next lint --fix",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
     "build:icons": "tsx src/assets/iconify-icons/bundle-icons-css.ts",
-    "postinstall": "npm run build:icons"
+    "postinstall": "npm run build:icons",
+    "i18n:scan": "node tools/i18n-merge.mjs --scan src --file src/locales/zh-MY.json",
+    "i18n:check": "node tools/i18n-merge.mjs --file src/locales/zh-MY.json --template tools/i18n-template.zh-MY.json --check",
+    "i18n:write": "node tools/i18n-merge.mjs --file src/locales/zh-MY.json --template tools/i18n-template.zh-MY.json --write --pretty"
   },
   "dependencies": {
     "@emotion/cache": "^11.11.0",
@@ -25,6 +28,7 @@
     "@supabase/supabase-js": "^2.56.1",
     "apexcharts": "^3.49.1",
     "classnames": "^2.5.1",
+    "glob": "^11.0.3",
     "next": "^14.2.3",
     "next-intl": "^4.3.5",
     "react": "^18.3.1",

@@ -1,0 +1,526 @@
+{
+  "menu": {
+    "dashboard": "仪表板",
+    "clients": "客户管理",
+    "loans": "贷款管理",
+    "repayments": "还款记录",
+    "reports": "报表",
+    "blacklist": "黑名单",
+    "approvals": "审批",
+    "settings": "系统设置",
+    "accountSettings": "账户设置",
+    "logout": "退出登录"
+  },
+
+  "common": {
+    "create": "新增",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除",
+    "edit": "编辑",
+    "view": "查看",
+    "export": "导出",
+    "search": "搜索",
+    "actions": "操作",
+    "loading": "加载中...",
+    "noData": "暂无数据",
+    "success": "操作成功",
+    "failed": "操作失败",
+    "retry": "重试",
+    "close": "关闭",
+    "back": "返回",
+    "optional": "可选",
+    "required": "必填"
+  },
+
+  "validation": {
+    "required": "此字段为必填",
+    "invalid": "输入格式不正确",
+    "invalidNumber": "请输入有效的数字",
+    "minAmount": "金额必须大于 RM {{min}}",
+    "maxDecimals": "最多允许两位小数"
+  },
+
+  "status": {
+    "normal": "正常",
+    "settled": "清完",
+    "negotiating": "谈帐",
+    "bad_debt": "烂账"
+  },
+
+  "dashboard": {
+    "title": "贷款业务总览",
+    "kpi": {
+      "activeBorrowers": "在贷人数",
+      "monthlyDisbursed": "当月放款总额",
+      "monthlyRepaid": "当月回款总额",
+      "overdueLoans": "逾期笔数",
+      "collectionRate": "收回率",
+      "badDebtRate": "坏账率"
+    },
+    "charts": {
+      "statusDistribution": "状态分布",
+      "cashflowTrend": "现金流趋势（12个月）"
+    },
+    "widgets": {
+      "dueSoon": "7天内到期提醒",
+      "topOverdue": "逾期 Top 5",
+      "recentRepayments": "最近还款记录"
+    },
+    "realtime": {
+      "connected": "实时连接正常",
+      "disconnected": "实时连接中断"
+    },
+    "errors": {
+      "loadFailed": "仪表板数据获取失败"
+    }
+  },
+
+  "clients": {
+    "title": "客户管理",
+    "add": "新增客户",
+    "edit": "编辑客户",
+    "form": {
+      "full_name": "客户姓名",
+      "full_name_placeholder": "例如：陈小明",
+      "full_name_helper": "请输入客户身份证上的全名",
+      "ic_number": "身份证号码",
+      "ic_number_placeholder": "例如：901231-14-5678",
+      "ic_number_helper": "格式：6位出生日期-2位州属-4位顺序号",
+      "phone": "手机号码",
+      "phone_placeholder": "例如：+60123456789",
+      "phone_helper": "请包含国际区号（+60）",
+      "email": "邮箱",
+      "address": "地址",
+      "address_placeholder": "客户住址",
+      "address_helper": "可输入身份证或账单地址",
+      "status": "状态"
+    },
+    "table": {
+      "name": "姓名",
+      "phone": "手机",
+      "ic": "身份证",
+      "status": "状态",
+      "created_at": "创建时间",
+      "actions": "操作"
+    },
+    "search": {
+       "placeholder": "按姓名/手机号/身份证/客户代码搜索"
+     },
+     "empty": "还没有客户，点击右上角\"新增客户\"开始",
+     "badDebtCustomers": "坏账客户",
+     "customerManagement": "客户管理",
+     "customerManagementDesc": "管理和查看所有客户信息",
+     "addCustomer": "添加客户",
+     "totalCustomers": "总客户数",
+     "allCustomers": "所有客户",
+     "normalCustomers": "正常客户",
+     "currentlyActive": "当前活跃",
+     "newThisMonth": "本月新增",
+     "monthlyGrowth": "月度增长",
+     "awaitingApproval": "等待审批",
+     "customerList": "客户列表",
+     "searchCustomers": "搜索客户...",
+     "noCustomersFound": "未找到客户",
+     "active": "活跃",
+     "inactive": "非活跃",
+     "suspended": "已暂停",
+     "joinDate": "加入日期",
+     "editClient": "编辑客户",
+    "addClient": "添加客户",
+    "fullName": "全名",
+    "icNumber": "身份证号码",
+    "address": "地址"
+  },
+
+  "loans": {
+    "title": "贷款管理",
+    "addLoan": "新增贷款",
+    "form": {
+      "principal": "本金金额",
+      "principal_placeholder": "例如：10000",
+      "principal_helper": "贷款金额，单位 RM",
+      "interestSwitch": "是否扣利息",
+      "interestAmount": "利息金额",
+      "interestAmount_placeholder": "例如：1000",
+      "interestAmount_helper": "放款前一次性扣除的利息金额（RM）",
+      "depositSwitch": "是否收押金",
+      "depositAmount": "押金金额",
+      "depositAmount_placeholder": "例如：1000",
+      "depositAmount_helper": "放款时额外收取的押金金额（RM）",
+      "depositPolicy": "押金策略",
+      "depositPolicy_hold": "保留 (Hold)",
+      "depositPolicy_offset": "结清抵扣 (Offset at Settlement)",
+      "depositPolicy_refund": "结清退还 (Refund on Settlement)",
+      "previewTitle": "实时预览",
+      "previewLoanTotal": "贷款总额",
+      "previewInterest": "预扣利息",
+      "previewDeposit": "押金金额",
+      "previewDisbursed": "到手金额 (Disbursed)",
+      "previewTips_interest": "利息为起始一次性扣除（如有）",
+      "previewTips_deposit": "押金将在结清阶段按所选策略处理",
+      "previewTips_flexible": "客户还款金额灵活，系统自动分配（先息后本）"
+    },
+    "table": {
+      "client": "客户",
+      "principal": "本金",
+      "disbursed": "到手金额",
+      "principal_balance": "剩余本金",
+      "deposit_policy": "押金策略",
+      "status": "状态",
+      "created_at": "创建时间",
+      "actions": "操作"
+    },
+    "filters": {
+       "all": "全部",
+       "status": "状态筛选",
+       "searchPlaceholder": "按客户姓名/贷款编号搜索"
+     },
+     "status": {
+       "normal": "正常",
+       "settled": "清完",
+       "negotiating": "谈帐",
+       "badDebt": "坏账"
+     }
+  },
+
+  "repayments": {
+    "title": "还款记录",
+    "addRepayment": "新增还款",
+    "dialog": {
+      "amount": "还款金额",
+      "amount_placeholder": "例如：500",
+      "amount_helper": "输入任意金额，系统会自动拆分到利息和本金",
+      "quick": "快捷金额",
+      "quick_20": "RM20",
+      "quick_30": "RM30",
+      "quick_50": "RM50",
+      "quick_100": "RM100",
+      "quick_200": "RM200",
+      "previewTitle": "还款预览",
+      "previewInterest": "利息抵扣",
+      "previewPrincipal": "本金抵扣",
+      "previewRemaining": "剩余本金",
+      "previewTips_offset": "结清时将自动冲抵 RM{{amount}} 押金",
+      "previewTips_refund": "结清后押金 RM{{amount}} 将退还",
+      "confirm": "确认还款",
+      "cancel": "取消"
+    },
+    "table": {
+      "date": "日期",
+      "client": "客户",
+      "loan_code": "贷款编号",
+      "amount_in": "金额",
+      "alloc_interest": "利息",
+      "alloc_principal": "本金",
+      "note": "备注",
+      "actions": "操作"
+    },
+     "filters": {
+       "dateRange": "日期范围",
+       "searchPlaceholder": "按客户/贷款编号搜索"
+     }
+   },
+
+   "reports": {
+    "title": "报表分析",
+    "kpi": {
+      "totalDisbursed": "总放款",
+      "monthlyDisbursed": "月放款",
+      "monthlyRepaid": "月回款",
+      "badDebtRate": "坏账率",
+      "collectionRate": "收回率"
+    },
+    "charts": {
+      "statusDistribution": "状态分布",
+      "cashflowTrend": "放款/回款趋势（12个月）"
+    },
+    "table": {
+      "topOverdue": "逾期 Top 列表",
+      "recentRepayments": "最近还款"
+    }
+  },
+
+  "settings": {
+    "title": "系统设置",
+    "tabs": {
+      "basic": "基础信息",
+      "write": "写入开关",
+      "export": "导出与审计"
+    },
+    "basic": {
+      "systemName": "系统名称",
+      "logo": "系统 Logo"
+    },
+    "write": {
+      "writeEnabled": "写入权限",
+      "on": "已开启写入",
+      "off": "已关闭写入",
+      "tip": "此项用于演示/维护，生产环境请谨慎修改"
+    },
+    "export": {
+      "exportAll": "导出全部 CSV",
+      "audit": "审计日志"
+    }
+  },
+
+  "blacklist": {
+    "title": "黑名单",
+    "add": "加入黑名单",
+    "remove": "移出黑名单",
+    "table": {
+      "name": "姓名",
+      "ic": "身份证",
+      "phone": "手机",
+      "created_at": "加入时间",
+      "reason": "原因",
+      "actions": "操作"
+    },
+    "search": {
+      "placeholder": "按姓名/身份证/手机搜索"
+    }
+  },
+
+  "approvals": {
+    "title": "审批",
+    "list": "审批列表",
+    "pending": "待审批",
+    "approved": "已批准",
+    "rejected": "已拒绝",
+    "approve": "批准",
+    "reject": "拒绝",
+    "comment": "审批意见",
+    "empty": "暂无审批记录",
+    "loading": "正在加载审批数据...",
+    "error": "加载审批数据失败，请稍后再试",
+    "documentReview": "文档审核",
+    "creditCheck": "信用检查",
+    "riskAssessment": "风险评估",
+    "finalApproval": "最终审批",
+    "loanDisbursement": "放款",
+    "pendingReview": "待审核",
+    "pendingApproval": "待批准",
+    "onHold": "暂停",
+    "totalApplications": "申请总数",
+    "allApplications": "所有申请",
+    "awaitingReview": "等待审核",
+    "approvedToday": "今日批准",
+    "todayApprovals": "今日审批",
+    "averageProcessingTime": "平均处理时间",
+    "days": "天",
+    "loanApplications": "贷款申请",
+    "searchApplications": "搜索申请",
+    "status": "状态",
+    "assignedTo": "分配给",
+    "loanAmount": "贷款金额",
+    "purpose": "用途",
+    "submittedAt": "提交时间",
+    "process": "处理",
+    "applicationDetails": "申请详情",
+    "customerName": "客户姓名",
+    "interestRate": "利率",
+    "term": "期限",
+    "months": "个月",
+    "approvalProgress": "审批进度",
+    "documents": "文档",
+    "table": {
+      "code": "单号",
+      "kind": "类型",
+      "submitter": "提交人",
+      "status": "状态",
+      "created_at": "提交时间",
+      "actions": "操作"
+    },
+    "drawer": {
+      "detail": "审批详情",
+      "approve": "通过",
+      "reject": "拒绝",
+      "note": "备注"
+    },
+    "status": {
+      "pending": "待批",
+      "approved": "已通过",
+      "rejected": "已拒绝"
+    }
+  },
+
+  "accountSettings": {
+    "title": "账户设置",
+    "profile": {
+      "full_name": "姓名",
+      "phone": "手机",
+      "avatar": "头像",
+      "save": "保存信息"
+    },
+    "security": {
+      "currentPassword": "当前密码",
+      "newPassword": "新密码",
+      "confirmPassword": "确认新密码",
+      "updatePassword": "更新密码"
+    },
+    "session": {
+      "email": "登录邮箱",
+      "lastLogin": "上次登录时间"
+    }
+  },
+
+  "auth": {
+    "login": {
+      "title": "登录",
+      "email": "邮箱",
+      "password": "密码",
+      "submit": "登录",
+      "forgotPassword": "忘记密码？",
+      "noAccount": "没有账户？",
+      "register": "注册"
+    },
+    "register": {
+      "title": "注册",
+      "fullName": "姓名",
+      "email": "邮箱",
+      "password": "密码",
+      "confirmPassword": "确认密码",
+      "submit": "注册",
+      "hasAccount": "已有账户？",
+      "login": "登录"
+    },
+    "errors": {
+      "invalidCredentials": "邮箱或密码错误",
+      "emailExists": "邮箱已存在",
+      "weakPassword": "密码强度不够",
+      "networkError": "网络错误，请稍后再试"
+    }
+  },
+
+  "notifications": {
+    "title": "通知",
+    "placeholder1": "系统已成功连接 Supabase ✅",
+    "placeholder2": "还款提醒功能将在 Phase 2 上线 🚧"
+  },
+
+  "writeProtection": {
+    "title": "当前写入功能已被禁用",
+    "desc": "如需启用写入，请设置环境变量 ENABLE_WRITE=1 并重启服务。"
+  },
+
+  "payments": {
+    "paymentManagement": "付款管理",
+    "recordPayment": "记录付款",
+    "totalPayments": "总付款",
+    "allPayments": "所有付款",
+    "paidThisMonth": "本月已付",
+    "monthlyCollection": "月度收款",
+    "overduePayments": "逾期付款",
+    "requiresAttention": "需要关注",
+    "pendingPayments": "待付款项",
+    "dueThisMonth": "本月到期",
+    "searchPayments": "搜索付款记录",
+    "status": "状态",
+    "dateRange": "日期范围",
+    "paymentId": "付款ID",
+    "loanId": "贷款ID",
+    "customer": "客户",
+    "amount": "金额",
+    "dueDate": "到期日期",
+    "paidDate": "付款日期",
+    "paymentMethod": "付款方式",
+    "loading": "加载中",
+    "noPaymentsFound": "未找到付款记录",
+    "markPaid": "标记为已付",
+    "paid": "已付",
+    "pending": "待付",
+    "overdue": "逾期",
+    "partial": "部分付款",
+    "bankTransfer": "银行转账",
+    "onlineBanking": "网上银行",
+    "cash": "现金",
+    "cheque": "支票"
+  },
+
+  "table": {
+    "rowsPerPage": "每页行数",
+    "of": "共",
+    "to": "到"
+  },
+
+  "pagination": {
+    "previous": "上一页",
+    "next": "下一页",
+    "page": "第 {{current}} 页，共 {{total}} 页",
+    "showing": "显示第 {{start}} 到 {{end}} 项，共 {{total}} 项",
+    "rowsPerPage": "每页行数",
+    "of": "共"
+  },
+  "common": {
+    "dashboard": "仪表板",
+    "actions": "操作",
+    "create": "创建",
+    "edit": "编辑",
+    "delete": "删除",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "search": "搜索",
+    "filter": "筛选",
+    "export": "导出",
+    "import": "导入",
+    "refresh": "刷新",
+    "loading": "加载中...",
+    "noData": "暂无数据",
+    "success": "成功",
+    "error": "错误",
+    "warning": "警告",
+    "info": "信息",
+    "all": "全部"
+  },
+  "customers": {
+    "customerManagement": "客户管理",
+    "customerManagementDesc": "管理和查看所有客户信息",
+    "addCustomer": "添加客户",
+    "totalCustomers": "总客户数",
+    "allCustomers": "所有客户",
+    "normalCustomers": "正常客户",
+    "currentlyActive": "当前活跃",
+    "newThisMonth": "本月新增",
+    "monthlyGrowth": "月度增长",
+    "badDebtCustomers": "坏账客户",
+    "awaitingApproval": "等待审批",
+    "customerList": "客户列表",
+    "searchCustomers": "搜索客户...",
+    "noCustomersFound": "未找到客户",
+    "active": "活跃",
+    "inactive": "非活跃",
+    "suspended": "已暂停",
+    "name": "姓名",
+    "email": "邮箱",
+    "phone": "电话",
+    "status": "状态",
+    "joinDate": "加入日期",
+    "editClient": "编辑客户",
+    "addClient": "添加客户",
+    "fullName": "全名",
+    "icNumber": "身份证号码",
+    "address": "地址"
+  },
+
+  "currency": {
+    "myr": "马币",
+    "symbol": "RM"
+  },
+
+  "date": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "thisWeek": "本周",
+    "thisMonth": "本月",
+    "selectRange": "选择日期范围"
+  },
+
+  "errors": {
+    "unknown": "发生未知错误",
+    "network": "网络请求失败，请检查连接",
+    "forbidden": "无权限执行此操作",
+    "notFound": "资源不存在或已删除"
+  }
+}
