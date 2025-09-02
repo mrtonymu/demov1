@@ -20,9 +20,13 @@ import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 
 // Utils Imports
 import { createBrowserSupabaseClient } from '@/lib/supabase'
+
+// Hook Imports
+import { useTranslations } from 'next-intl'
 
 // Styled component for badge content
 const BadgeContentSpan = styled('span')({
@@ -39,6 +43,7 @@ const UserDropdown = () => {
   const [open, setOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   // Refs
   const anchorRef = useRef<HTMLDivElement>(null)
@@ -46,6 +51,7 @@ const UserDropdown = () => {
   // Hooks
   const router = useRouter()
   const supabase = createBrowserSupabaseClient()
+  const t = useTranslations('userMenu')
 
   // 获取用户信息
   useEffect(() => {
@@ -99,18 +105,21 @@ const UserDropdown = () => {
   }
 
   const handleLogout = async () => {
+    setIsLoggingOut(true)
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST'
       })
 
       if (response.ok) {
-        router.replace('/login')
+        router.replace('/zh-MY/login')
       } else {
         console.error('登出失败')
       }
     } catch (error) {
       console.error('登出错误:', error)
+    } finally {
+      setIsLoggingOut(false)
     }
     
     setOpen(false)
@@ -149,6 +158,7 @@ const UserDropdown = () => {
           src={avatarUrl}
           onClick={handleDropdownOpen}
           className='cursor-pointer bs-[38px] is-[38px]'
+          aria-label={t('open')}
         />
       </Badge>
       <Popper
@@ -171,29 +181,30 @@ const UserDropdown = () => {
                 <MenuList>
                   <div className='flex items-center plb-2 pli-4 gap-2' tabIndex={-1}>
                     <Avatar alt={displayName} src={avatarUrl} />
-                    <div className='flex items-start flex-col'>
+                    <div className='flex items-start flex-col flex-1'>
                       <Typography className='font-medium' color='text.primary'>
                         {displayName}
                       </Typography>
-                      <Typography variant='caption'>{userEmail}</Typography>
+                      <Typography variant='caption' color='text.secondary'>
+                        {userEmail}
+                      </Typography>
                     </div>
+                    <Chip
+                      label={t('loggedIn')}
+                      size='small'
+                      color='success'
+                      variant='outlined'
+                      sx={{ fontSize: '0.75rem', height: '20px' }}
+                    />
                   </div>
                   <Divider className='mlb-1' />
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
-                    <i className='ri-user-3-line' />
-                    <Typography color='text.primary'>My Profile</Typography>
-                  </MenuItem>
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
-                    <i className='ri-settings-4-line' />
-                    <Typography color='text.primary'>Settings</Typography>
-                  </MenuItem>
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
-                    <i className='ri-money-dollar-circle-line' />
-                    <Typography color='text.primary'>Pricing</Typography>
-                  </MenuItem>
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
-                    <i className='ri-question-line' />
-                    <Typography color='text.primary'>FAQ</Typography>
+
+                  <MenuItem 
+                    className='gap-3' 
+                    onClick={e => handleDropdownClose(e, '/zh-MY/account-settings')}
+                  >
+                    <i className='ri-user-settings-line' />
+                    <Typography color='text.primary'>{t('accountSettings')}</Typography>
                   </MenuItem>
                   <div className='flex items-center plb-2 pli-4'>
                     <Button
@@ -201,11 +212,12 @@ const UserDropdown = () => {
                       variant='contained'
                       color='error'
                       size='small'
+                      disabled={isLoggingOut}
                       endIcon={<i className='ri-logout-box-r-line' />}
                       onClick={handleLogout}
                       sx={{ '& .MuiButton-endIcon': { marginInlineStart: 1.5 } }}
                     >
-                      Logout
+                      {isLoggingOut ? t('loggingOut') : t('logout')}
                     </Button>
                   </div>
                 </MenuList>

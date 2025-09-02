@@ -714,5 +714,16 @@
       "approved": "已批准",
       "rejected": "已拒绝"
     }
+  },
+  "userMenu": {
+    "greeting": "你好",
+    "account": "账户",
+    "accountSettings": "账户设置",
+    "logout": "退出登录",
+    "confirmLogoutTitle": "确认退出",
+    "confirmLogoutMsg": "确定要退出当前账户吗？",
+    "loggingOut": "正在退出…",
+    "loggedIn": "已登录",
+    "open": "打开菜单"
   }
 }

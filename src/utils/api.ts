@@ -37,6 +37,7 @@ export async function apiCall<T = any>(
     const config: RequestInit = {
       method,
       cache,
+      credentials: 'include', // 携带 cookie，确保 Supabase 会话传递
       headers: {
         'Content-Type': 'application/json',
         ...headers

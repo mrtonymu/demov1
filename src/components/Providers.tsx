@@ -7,6 +7,7 @@ import { SettingsProvider } from '@core/contexts/settingsContext'
 import ThemeProvider from '@components/theme'
 
 // Component Imports
+import AuthProvider from '@components/AuthProvider'
 
 // Util Imports
 import { getMode, getSettingsFromCookie } from '@core/utils/serverHelpers'
@@ -24,13 +25,15 @@ const Providers = (props: Props) => {
   const settingsCookie = getSettingsFromCookie()
 
   return (
-    <VerticalNavProvider>
-      <SettingsProvider settingsCookie={settingsCookie} mode={mode}>
-        <ThemeProvider direction={direction}>
-          {children}
-        </ThemeProvider>
-      </SettingsProvider>
-    </VerticalNavProvider>
+    <AuthProvider>
+      <VerticalNavProvider>
+        <SettingsProvider settingsCookie={settingsCookie} mode={mode}>
+          <ThemeProvider direction={direction}>
+            {children}
+          </ThemeProvider>
+        </SettingsProvider>
+      </VerticalNavProvider>
+    </AuthProvider>
   )
 }
 

@@ -89,12 +89,6 @@ const VerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectSc
             系统设置
           </MenuItem>
         </MenuSection>
-        
-        <MenuSection label='账户'>
-          <MenuItem href='/account-settings' icon={<i className='ri-user-settings-line' />}>
-            账户设置
-          </MenuItem>
-        </MenuSection>
       </Menu>
     </ScrollWrapper>
   )
